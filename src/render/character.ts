@@ -57,7 +57,7 @@ export function createCharacter(id: PlayerId): Character {
   }
 
   const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.5, 1), skin); head.position.y = 1.55; head.scale.set(1, 0.95, 0.95); model.add(head);
-  const hair = new THREE.Mesh(new THREE.IcosahedronGeometry(0.51, 1), flatMaterial(hairColor)); hair.position.set(0, 1.6, -0.16); hair.scale.set(1.0, 0.9, 0.8); model.add(hair);
+  const hair = new THREE.Mesh(new THREE.IcosahedronGeometry(0.5, 1), flatMaterial(hairColor)); hair.position.set(0, 1.6, -0.12); hair.scale.set(0.98, 0.9, 0.78); model.add(hair);
   const eyeMat = flatMaterial('#1A1A2E'), cheekMat = flatMaterial('#F29A8A');
   for (const x of [-0.17, 0.17]) {
     const eye = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.17, 0.05), eyeMat); eye.position.set(x, 1.52, 0.46); model.add(eye);
@@ -66,10 +66,10 @@ export function createCharacter(id: PlayerId): Character {
   for (const x of [-0.3, 0.3]) {
     const ch = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.05, 0.03), cheekMat); ch.position.set(x, 1.4, 0.4); model.add(ch);
   }
-  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.53, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), shirt); cap.position.y = 1.7; cap.scale.y = 0.75; model.add(cap);
-  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.535, 0.535, 0.1, 8), shadeMat); band.position.y = 1.72; model.add(band);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.56, 12, 5, 0, Math.PI * 2, 0, Math.PI / 2), shirt); cap.position.y = 1.7; cap.scale.y = 0.75; model.add(cap);
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.565, 0.565, 0.1, 12), shadeMat); band.position.y = 1.72; model.add(band);
   const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.46, 0.46, 0.07, 10, 1, false, -Math.PI / 2, Math.PI), shadeMat); brim.position.set(0, 1.69, 0.3); brim.rotation.x = 0.12; model.add(brim);
-  const button = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.06, 0.1), white); button.position.y = 2.1; model.add(button);
+  const button = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.06, 0.1), white); button.position.y = 2.12; model.add(button);
   enableShadows(root);
 
   let time = 0, walkPhase = 0;
