@@ -16,7 +16,7 @@ function howToPlay(): HTMLElement[] {
   return [
     h('section', 'col', '',
       h('h3', '', 'Como funciona'),
-      h('p', '', 'A cada rodada o telão sorteia um tema e faz uma pergunta com quatro alternativas, uma em cada plataforma (A, B, C e D). Corra até a plataforma da resposta certa antes do tempo acabar. Quem estiver na errada, ou fora de qualquer plataforma, cai pelo alçapão.'),
+      h('p', '', 'A cada rodada o telão sorteia um tema e faz uma pergunta com quatro alternativas, uma em cada plataforma colorida (vermelho com triângulo, azul com losango, amarelo com círculo e verde com quadrado). Corra até a plataforma da resposta certa antes do tempo acabar. Quem estiver na errada, ou fora de qualquer plataforma, cai pelo alçapão.'),
       h('p', '', 'Use o empurrão para tirar os rivais do caminho: alcance curto, e leva 2 segundos para recarregar.'),
       h('h3', '', 'Sobrevivência'),
       h('p', '', 'Errou, caiu fora. Vence o último de pé. Se todos errarem na mesma rodada, ela é anulada. Jogando sozinho, vale quantas rodadas você aguenta.'),

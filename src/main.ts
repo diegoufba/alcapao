@@ -1,7 +1,7 @@
-import '@fontsource/bungee/400.css';
-import '@fontsource/rubik/400.css';
-import '@fontsource/rubik/500.css';
-import '@fontsource/rubik/600.css';
+import '@fontsource/titan-one/400.css';
+import '@fontsource/nunito/700.css';
+import '@fontsource/nunito/800.css';
+import '@fontsource/nunito/900.css';
 import './ui/styles.css';
 import { createScene } from './render/scene';
 import { validateBank } from './core/questions';
@@ -61,7 +61,7 @@ async function runGame(): Promise<void> {
   ui.id = 'ui';
   app.replaceChildren(canvas, hudRoot, fpsEl, ui);
 
-  await Promise.all([document.fonts.load('40px Bungee'), document.fonts.load('600 40px Rubik'), document.fonts.load('500 40px Rubik')]);
+  await Promise.all([document.fonts.load('40px "Titan One"'), document.fonts.load('700 40px Nunito'), document.fonts.load('800 40px Nunito')]);
   const { renderer, scene, camera, resize } = createScene(canvas);
   const { bank, error } = await loadBank();
 

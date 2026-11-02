@@ -21,7 +21,7 @@ export async function runShowcase(kind: string, params: URLSearchParams): Promis
   canvas.style.cssText = 'display:block;width:100vw;height:100vh';
   app.replaceChildren(canvas);
 
-  await Promise.all([document.fonts.load('40px Bungee'), document.fonts.load('600 40px Rubik'), document.fonts.load('500 40px Rubik')]);
+  await Promise.all([document.fonts.load('40px "Titan One"'), document.fonts.load('700 40px Nunito'), document.fonts.load('800 40px Nunito')]);
   const { renderer, scene, camera, resize } = createScene(canvas);
   const arena = createArena(scene);
   const screen = createScreen(scene);

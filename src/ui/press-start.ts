@@ -12,8 +12,8 @@ function icon(w: number, paths: string[]): SVGSVGElement {
     const p = document.createElementNS(SVG_NS, 'path');
     p.setAttribute('d', d);
     p.setAttribute('fill', 'none');
-    p.setAttribute('stroke', '#C5CBEA');
-    p.setAttribute('stroke-width', '2');
+    p.setAttribute('stroke', '#1E1A2E');
+    p.setAttribute('stroke-width', '2.5');
     p.setAttribute('stroke-linecap', 'round');
     p.setAttribute('stroke-linejoin', 'round');
     svg.append(p);

@@ -1,17 +1,33 @@
 import * as THREE from 'three';
 import type { ShownQuestion, Zone } from '../core/types';
 import { headerText, roundLabel, type ScreenView } from './screen-view';
-import { ACCENT, PLAYER_COLORS, flatMaterial } from './scene';
+import { ACCENT, INK, PLAYER_COLORS, YELLOW, ZONE_STYLE, drawZoneShape, flatMaterial } from './scene';
 
 export type { ScreenView };
 
 const W = 1600;
 const H = 600;
-const TEXT = '#EEF0FF';
+const MUTED = '#5A5276';
 const ZONES: Zone[] = ['A', 'B', 'C', 'D'];
+const TITLE = '"Titan One"';
+const BODY = 'Nunito';
 
 function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
   ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+}
+
+/** Caixa no estilo das telas: sombra dura deslocada, preenchimento e contorno escuro. */
+function box(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number, fill: string, shadow = 6): void {
+  if (shadow) { ctx.fillStyle = INK; rr(ctx, x + shadow, y + shadow, w, h, r); ctx.fill(); }
+  ctx.fillStyle = fill; rr(ctx, x, y, w, h, r); ctx.fill();
+  ctx.lineWidth = 6; ctx.strokeStyle = INK; ctx.stroke();
+}
+
+/** Texto com contorno escuro grosso, como os títulos das telas. */
+function outlined(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, fill: string, stroke: number): void {
+  ctx.lineJoin = 'round'; ctx.lineWidth = stroke; ctx.strokeStyle = INK;
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = fill; ctx.fillText(text, x, y);
 }
 
 function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
@@ -27,61 +43,65 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
 
 function drawHeader(ctx: CanvasRenderingContext2D, chip: string, label: string): void {
   ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-  ctx.font = '38px Bungee';
+  ctx.font = `36px ${TITLE}`;
   const chipW = ctx.measureText(chip.toUpperCase()).width + 44;
-  ctx.fillStyle = ACCENT; rr(ctx, 50, 44, chipW, 70, 12); ctx.fill();
-  ctx.fillStyle = '#141413'; ctx.fillText(chip.toUpperCase(), 72, 82);
-  ctx.fillStyle = '#A9B0D6'; ctx.font = '500 34px Rubik';
+  box(ctx, 50, 44, chipW, 70, 16, YELLOW, 0);
+  ctx.fillStyle = INK; ctx.fillText(chip.toUpperCase(), 72, 82);
+  ctx.fillStyle = MUTED; ctx.font = `700 34px ${BODY}`;
   ctx.fillText(label, 50 + chipW + 30, 82);
 }
 
 function drawQuestionBody(ctx: CanvasRenderingContext2D, q: ShownQuestion, reveal: boolean): void {
-  ctx.fillStyle = TEXT; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.font = '600 64px Rubik';
-  let lines = wrap(ctx, q.text, 1500);
+  ctx.fillStyle = INK; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.font = `60px ${TITLE}`;
+  let lines = wrap(ctx, q.text, 1380);
   let lineH = 78;
-  if (lines.length > 1) { ctx.font = '600 52px Rubik'; lines = wrap(ctx, q.text, 1500); lineH = 62; }
-  const y0 = lines.length > 1 ? 168 : 200;
+  if (lines.length > 1) { ctx.font = `48px ${TITLE}`; lines = wrap(ctx, q.text, 1500); lineH = 60; }
+  const y0 = lines.length > 1 ? 166 : 196;
   lines.slice(0, 2).forEach((l, i) => ctx.fillText(l, 50, y0 + i * lineH));
 
-  ZONES.forEach((l, i) => {
+  ZONES.forEach((zone, i) => {
     const x = 50 + (i % 2) * 760, y = 290 + Math.floor(i / 2) * 140;
-    const ok = reveal && l === q.correct;
-    ctx.globalAlpha = reveal && !ok ? 0.4 : 1;
-    ctx.fillStyle = ok ? ACCENT : '#1F2546'; rr(ctx, x, y, 740, 116, 16); ctx.fill();
-    ctx.fillStyle = ok ? '#141413' : '#2E3666'; rr(ctx, x + 16, y + 16, 84, 84, 12); ctx.fill();
-    ctx.fillStyle = ok ? ACCENT : TEXT; ctx.font = '44px Bungee'; ctx.textAlign = 'center';
-    ctx.fillText(l, x + 58, y + 62);
-    ctx.fillStyle = ok ? '#141413' : TEXT; ctx.font = '500 48px Rubik'; ctx.textAlign = 'left';
-    ctx.fillText(q.options[i], x + 126, y + 60, 596);
+    const ok = reveal && zone === q.correct;
+    const { color } = ZONE_STYLE[zone];
+    ctx.globalAlpha = reveal && !ok ? 0.35 : 1;
+    box(ctx, x, y, 730, 110, 20, color, ok ? 10 : 6);
+    if (ok) { ctx.lineWidth = 8; ctx.strokeStyle = '#FFFFFF'; rr(ctx, x + 10, y + 10, 710, 90, 14); ctx.stroke(); }
+    drawZoneShape(ctx, zone, x + 62, y + 56, 46);
+    ctx.fillStyle = zone === 'C' ? INK : '#FFFFFF'; ctx.font = `800 46px ${BODY}`; ctx.textAlign = 'left';
+    ctx.fillText(q.options[i], x + 112, y + 57, 590);
     ctx.globalAlpha = 1;
   });
 }
 
 function drawView(ctx: CanvasRenderingContext2D, view: ScreenView): void {
-  ctx.fillStyle = '#161B33'; ctx.fillRect(0, 0, W, H);
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#FFFFFF'); bg.addColorStop(1, '#EEE9FF');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
   ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
 
   if (view.kind === 'question' || view.kind === 'reveal') {
     const { q } = view;
     drawHeader(ctx, q.theme, headerText(q, view.round, view.totalRounds, view.mode, view.suddenDeath));
     if (view.kind === 'reveal') {
-      ctx.fillStyle = ACCENT; ctx.font = '44px Bungee'; ctx.textAlign = 'right';
-      ctx.fillText(`RESPOSTA: ${q.correct}`, W - 50, 82);
+      ctx.font = `40px ${TITLE}`; ctx.textAlign = 'right';
+      outlined(ctx, 'RESPOSTA', W - 130, 84, ACCENT, 10);
+      drawZoneShape(ctx, q.correct, W - 82, 84, 64, ZONE_STYLE[q.correct].color);
     } else {
-      ctx.strokeStyle = ACCENT; ctx.lineWidth = 12;
-      ctx.beginPath(); ctx.arc(W - 105, 84, 52, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = TEXT; ctx.font = '48px Bungee'; ctx.textAlign = 'center';
-      ctx.fillText(String(Math.max(0, Math.ceil(view.timeLeft))).padStart(2, '0'), W - 105, 88);
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(W - 99, 90, 54, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = ACCENT; ctx.beginPath(); ctx.arc(W - 105, 84, 54, 0, Math.PI * 2); ctx.fill();
+      ctx.lineWidth = 7; ctx.strokeStyle = INK; ctx.stroke();
+      ctx.font = `48px ${TITLE}`; ctx.textAlign = 'center';
+      outlined(ctx, String(Math.max(0, Math.ceil(view.timeLeft))).padStart(2, '0'), W - 105, 88, '#FFFFFF', 8);
     }
     drawQuestionBody(ctx, q, view.kind === 'reveal');
   } else if (view.kind === 'spin') {
-    ctx.fillStyle = '#A9B0D6'; ctx.font = '500 34px Rubik';
+    ctx.fillStyle = MUTED; ctx.font = `700 34px ${BODY}`;
     ctx.fillText(roundLabel(view.round, view.totalRounds), 50, 82);
-    ctx.fillStyle = TEXT; ctx.font = '72px Bungee'; ctx.textAlign = 'center';
-    ctx.fillText('SORTEANDO O TEMA', W / 2, 190);
+    ctx.font = `76px ${TITLE}`; ctx.textAlign = 'center';
+    outlined(ctx, 'SORTEANDO O TEMA', W / 2, 190, '#FFFFFF', 14);
     // faixa horizontal de temas, com quebra de linha se não couber
-    ctx.font = '40px Bungee';
+    ctx.font = `38px ${TITLE}`;
     const gap = 24, pad = 36;
     const widths = view.themes.map(t => ctx.measureText(t.toUpperCase()).width + pad * 2);
     const rows: number[][] = [[]];
@@ -96,22 +116,22 @@ function drawView(ctx: CanvasRenderingContext2D, view: ScreenView): void {
       const y = 330 + r * 110;
       for (const i of row) {
         const on = view.themes[i] === view.highlighted;
-        ctx.fillStyle = on ? ACCENT : '#1F2546'; rr(ctx, x, y - 42, widths[i], 84, 16); ctx.fill();
-        ctx.fillStyle = on ? '#141413' : '#8E9AD8'; ctx.textAlign = 'left';
+        box(ctx, x, y - 42, widths[i], 84, 18, on ? YELLOW : '#FFFFFF', on ? 6 : 0);
+        ctx.fillStyle = on ? INK : MUTED; ctx.textAlign = 'left';
         ctx.fillText(view.themes[i].toUpperCase(), x + pad, y + 2);
         x += widths[i] + gap;
       }
     });
   } else {
-    ctx.fillStyle = ACCENT; ctx.font = '120px Bungee'; ctx.textAlign = 'center';
-    ctx.fillText('MORTE SÚBITA', W / 2, 190);
-    ctx.font = '110px Bungee';
+    ctx.font = `120px ${TITLE}`; ctx.textAlign = 'center';
+    outlined(ctx, 'MORTE SÚBITA', W / 2, 190, ACCENT, 20);
+    ctx.font = `110px ${TITLE}`;
     const gap = 80;
     const ids = view.players;
     const widths = ids.map(id => ctx.measureText(id).width);
     let x = (W - (widths.reduce((s, w) => s + w, 0) + gap * (ids.length - 1))) / 2;
     ids.forEach((id, i) => {
-      ctx.fillStyle = PLAYER_COLORS[id]; ctx.textAlign = 'left'; ctx.fillText(id, x, 400);
+      ctx.textAlign = 'left'; outlined(ctx, id, x, 400, PLAYER_COLORS[id], 18);
       x += widths[i] + gap;
     });
   }
@@ -129,6 +149,7 @@ export function createScreen(scene: THREE.Scene): { draw(view: ScreenView): void
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.anisotropy = 8;
+  if (ctx) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, W, H); } // telão vazio claro até a primeira view
 
   let last: ScreenView | null = null;
   let lastKey = '';
@@ -147,20 +168,34 @@ export function createScreen(scene: THREE.Scene): { draw(view: ScreenView): void
   }
 
   // As fontes embutidas carregam de forma assíncrona: redesenha quando chegarem.
-  void Promise.all([document.fonts.load('40px Bungee'), document.fonts.load('600 40px Rubik'), document.fonts.load('500 40px Rubik')])
+  void Promise.all([document.fonts.load(`40px ${TITLE}`), document.fonts.load(`700 40px ${BODY}`), document.fonts.load(`800 40px ${BODY}`)])
     .then(paint)
     .catch(() => {});
 
+  // Moldura laranja com faixa de lâmpadas no topo e contorno escuro em volta da tela.
   const tel = new THREE.Group();
-  tel.add(new THREE.Mesh(new THREE.BoxGeometry(17, 6.8, 0.5), flatMaterial('#2A3157')));
+  const outline = new THREE.Mesh(new THREE.BoxGeometry(17.4, 7.8, 0.4), flatMaterial(INK));
+  outline.position.set(0, 0.3, -0.06); tel.add(outline);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(17, 7.4, 0.5), flatMaterial(ACCENT, { emissive: ACCENT, emissiveIntensity: 0.35 }));
+  frame.position.y = 0.3; tel.add(frame);
+  const strip = new THREE.Mesh(new THREE.BoxGeometry(17, 0.42, 0.52), flatMaterial('#FF9A7A', { emissive: '#FF9A7A', emissiveIntensity: 0.35 }));
+  strip.position.y = 3.6; tel.add(strip);
+  const bulbGeo = new THREE.SphereGeometry(0.09, 8, 6);
+  const bulbMat = new THREE.MeshBasicMaterial({ color: '#FFF3C4' });
+  for (let i = 0; i < 21; i++) {
+    const bulb = new THREE.Mesh(bulbGeo, bulbMat);
+    bulb.position.set(-8 + i * 0.8, 3.6, 0.28); tel.add(bulb);
+  }
+  const border = new THREE.Mesh(new THREE.PlaneGeometry(16.3, 6.3), new THREE.MeshBasicMaterial({ color: INK }));
+  border.position.z = 0.255; tel.add(border);
   const face = new THREE.Mesh(new THREE.PlaneGeometry(16, 6), new THREE.MeshBasicMaterial({ map: texture }));
   face.position.z = 0.26; tel.add(face);
   for (const s of [-1, 1]) {
-    const pole = new THREE.Mesh(new THREE.BoxGeometry(0.5, 8, 0.5), flatMaterial('#2A3157'));
+    const pole = new THREE.Mesh(new THREE.BoxGeometry(0.5, 8, 0.5), flatMaterial('#2A2540'));
     pole.position.set(7.6 * s, -5, -0.2); tel.add(pole);
   }
   tel.position.set(0, 5.4, -8.2); tel.rotation.x = 0.18;
-  tel.traverse(o => { if (o instanceof THREE.Mesh && o !== face) { o.receiveShadow = true; } });
+  tel.traverse(o => { if (o instanceof THREE.Mesh && o !== face && o !== border && o.material !== bulbMat) { o.receiveShadow = true; } });
   scene.add(tel);
 
   return { draw };

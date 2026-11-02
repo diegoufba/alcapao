@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Vec2 } from '../core/types';
-import { ACCENT } from './scene';
+import { ACCENT, YELLOW } from './scene';
 
 const LIFE = 0.4;
 const BIT_COUNT = 7, STREAK_COUNT = 3;
@@ -10,7 +10,7 @@ interface Item { mesh: THREE.Mesh; vel: THREE.Vector3; base: number; age: number
 export function createEffects(scene: THREE.Scene): { pushPuff(at: Vec2, dir: Vec2): void; update(dt: number): void; clear(): void } {
   const bitGeo = new THREE.IcosahedronGeometry(0.1, 0);
   const streakGeo = new THREE.BoxGeometry(0.9, 0.05, 0.05);
-  const colors = ['#FFFFFF', ACCENT];
+  const colors = ['#FFFFFF', YELLOW, ACCENT];
   const items: Item[] = [];
 
   function spawn(geo: THREE.BufferGeometry, color: string, pos: THREE.Vector3, vel: THREE.Vector3, base: number, yaw = 0): void {
@@ -29,7 +29,7 @@ export function createEffects(scene: THREE.Scene): { pushPuff(at: Vec2, dir: Vec
       for (let i = 0; i < BIT_COUNT; i++) {
         const pos = new THREE.Vector3(at.x + (Math.random() - 0.5) * 0.5, 1.45 + (Math.random() - 0.5) * 0.6, at.z + (Math.random() - 0.5) * 0.5);
         const vel = new THREE.Vector3((Math.random() - 0.5) * 2 + dx, Math.random() * 1.5, (Math.random() - 0.5) * 2 + dz);
-        spawn(bitGeo, colors[i % 2], pos, vel, 0.8 + Math.random() * 0.8);
+        spawn(bitGeo, colors[i % colors.length], pos, vel, 0.8 + Math.random() * 0.8);
       }
       for (let i = 0; i < STREAK_COUNT; i++) {
         const pos = new THREE.Vector3(at.x - dx * 1.2, 1.0 + i * 0.4, at.z - dz * 1.2 + i * 0.1);

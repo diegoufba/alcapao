@@ -3,7 +3,7 @@ import { zoneOf } from '../core/arena';
 import { PUSH_COOLDOWN } from '../core/physics';
 import type { DeviceSlots } from '../input/devices';
 import type { DeviceId } from '../input/keyboard';
-import { PLAYER_COLORS } from '../render/scene';
+import { PLAYER_COLORS, ZONE_STYLE } from '../render/scene';
 
 const DEVICE_LABELS: Record<string, string> = {
   'kb-wasd': 'WASD + F',
@@ -25,7 +25,7 @@ interface Card {
   last: { status: string; color: string; width: string; label: string; dim: boolean };
 }
 
-const RED = '#FF8A8A', GREEN = '#7CF0B8', TEXT = '#EEF0FF';
+const RED = '#C8283A', GREEN = '#1B7F3E', TEXT = '#1E1A2E';
 
 function el(tag: string, cls: string, text = ''): HTMLElement {
   const e = document.createElement(tag);
@@ -53,7 +53,7 @@ function statusOf(
     }
     if (state.phase === 'question' || state.phase === 'lock') {
       const z = zoneOf(p.pos);
-      return { text: z ? `Em ${z}` : 'Na faixa', color: TEXT, dim: false };
+      return { text: z ? `No ${ZONE_STYLE[z].name}` : 'Na faixa', color: TEXT, dim: false };
     }
     return { text: 'Na arena', color: TEXT, dim: false };
   }
