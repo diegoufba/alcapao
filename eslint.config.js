@@ -1,7 +1,7 @@
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist/**', 'node_modules/**', 'tools/**'] },
+  { ignores: ['dist/**', 'node_modules/**', 'tools/**', '.superpowers/**'] },
   ...tseslint.configs.recommended,
   {
     files: ['src/core/**/*.ts', 'src/audio/director.ts'],
