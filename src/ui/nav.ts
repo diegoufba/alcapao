@@ -125,14 +125,27 @@ export function createNav(): Nav {
   let root: HTMLElement | null = null;
   let onBack: (() => void) | undefined;
 
-  const items = (): HTMLButtonElement[] =>
-    root ? [...root.querySelectorAll('button')].filter((b) => !b.disabled && b.getClientRects().length > 0) : [];
+  type Item = HTMLButtonElement | HTMLInputElement
+  const items = (): Item[] =>
+    root ? [...root.querySelectorAll<Item>('button, input[type="range"]')].filter((b) => !b.disabled && b.getClientRects().length > 0) : [];
   const rectOf = (b: HTMLElement): Rect => b.getBoundingClientRect();
 
+  /** Esquerda/direita num controle deslizante em foco muda o valor em vez de mudar o foco. */
+  function slide(dir: Dir): boolean {
+    const a = document.activeElement;
+    if (!root || !(a instanceof HTMLInputElement) || a.type !== 'range' || !root.contains(a)) return false;
+    if (dir !== 'left' && dir !== 'right') return false;
+    const before = a.value;
+    if (dir === 'left') a.stepDown(); else a.stepUp();
+    if (a.value !== before) { a.dispatchEvent(new Event('input', { bubbles: true })); emitUi('navegar'); }
+    return true;
+  }
+
   function move(dir: Dir): boolean {
+    if (slide(dir)) return true;
     const list = items();
     if (list.length === 0) return false;
-    const i = list.indexOf(document.activeElement as HTMLButtonElement);
+    const i = list.indexOf(document.activeElement as Item);
     if (i < 0) { list[0].focus(); emitUi('navegar'); return true; }
     const j = pickInDirection(rectOf(list[i]), list.map(rectOf), dir, i);
     if (j >= 0) { list[j].focus(); emitUi('navegar'); }

@@ -50,6 +50,10 @@ export interface MatchController {
   result(): MatchResult | null;
   setDebug(on: boolean): void;
   skipPhase(): void;
+  /** Estado da partida em andamento (null fora de uma partida). */
+  state(): GameState | null;
+  /** Eventos gerados desde a última chamada (o áudio os consome a cada quadro). */
+  drainEvents(): GameEvent[];
 }
 
 function screenView(state: GameState, clock: number): ScreenView | null {
@@ -69,6 +73,7 @@ function screenView(state: GameState, clock: number): ScreenView | null {
 }
 
 export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad }: MatchDeps): MatchController {
+  const pending: GameEvent[] = [];
   const arena = createArena(scene);
   const screen = createScreen(scene);
   const debug = createDebug(scene);
@@ -148,6 +153,7 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
 
   return {
     start(config, slots) {
+      pending.length = 0;
       devices = slots;
       game = createGame(config, bank);
       result = null;
@@ -193,6 +199,7 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
       if (steps === 0) for (const p of state.players) if (!prev.has(p.id)) prev.set(p.id, { ...p.pos });
 
       handleEvents(state, events);
+      pending.push(...events);
       syncCharacters(state, alpha, dt);
       const view = screenView(state, clock);
       if (view) screen.draw(view);
@@ -205,10 +212,12 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
     resume() { paused = false; },
     isPaused: () => paused,
     isOver: () => game?.state.phase === 'over',
+    state: () => game?.state ?? null,
+    drainEvents() { return pending.splice(0); },
     result: () => result,
 
     stop() {
-      game = null; devices = null; result = null; paused = false;
+      game = null; devices = null; result = null; paused = false; pending.length = 0;
       hud = createHud(hudRoot);
       hideCharacters();
       effects.clear();

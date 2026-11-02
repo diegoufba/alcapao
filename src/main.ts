@@ -13,7 +13,7 @@ import { DeviceSlots } from './input/devices';
 import { safeStorage } from './storage';
 import { createMatchController } from './match';
 import { createRouter, type Screen } from './ui/router';
-import { createNav, emitUi, PadNav, type PadEvent } from './ui/nav';
+import { createNav, emitUi, onUiEvent, PadNav, type PadEvent } from './ui/nav';
 import { createPressStart } from './ui/press-start';
 import { createMenu } from './ui/menu';
 import { createOptions } from './ui/options';
@@ -22,6 +22,10 @@ import { createResults } from './ui/results';
 import { createPause } from './ui/pause';
 import { createError } from './ui/error';
 import type { ScreenCtl } from './ui/dom';
+import { AudioDirector, type UiEvent } from './audio/director';
+import { loadAudioSettings, saveAudioSettings, type AudioSettings } from './audio/settings';
+import { loadLibrary } from './audio/library';
+import { Mixer } from './audio/mixer';
 
 const params = new URLSearchParams(location.search);
 const showcase = params.get('showcase');
@@ -67,13 +71,51 @@ async function runGame(): Promise<void> {
   const router = createRouter();
   const match = createMatchController({ scene, hudRoot, bank, keyboard, gamepad });
 
+  // --- áudio ---------------------------------------------------------------
+  // O AudioContext só nasce no primeiro input da press-start (política de autoplay dos navegadores).
+  let audioSettings: AudioSettings = loadAudioSettings(storage);
+  let actx: AudioContext | null = null;
+  let mixer: Mixer | null = null;
+  const director = new AudioDirector();
+  const uiQueue: UiEvent[] = [];
+  onUiEvent((e) => { uiQueue.push(e); });
+
+  function applyAudioSettings(next: AudioSettings): void {
+    audioSettings = next;
+    mixer?.setSettings(next);
+    saveAudioSettings(storage, next);
+  }
+  function wakeAudio(): void {
+    if (!actx) {
+      try {
+        const ctx = new AudioContext();
+        actx = ctx;
+        void loadLibrary(ctx).then((lib) => {
+          const m = new Mixer(ctx, lib);
+          m.setSettings(audioSettings);
+          mixer = m;
+        });
+      } catch (err) {
+        console.warn('[audio] indisponível', err);
+      }
+    }
+    if (actx && actx.state === 'suspended') void actx.resume().catch(() => undefined);
+  }
+  for (const type of ['keydown', 'pointerdown'] as const) window.addEventListener(type, wakeAudio, { capture: true });
+
   let overTimer = -1; // contagem até a tela de resultados (<0 = inativa)
   let activeDevices: DeviceSlots | null = null; // jogadores da partida em andamento
 
   // --- telas ---------------------------------------------------------------
   const pressStart = createPressStart();
   const menu = createMenu({ nav, storage, onPlay: () => router.go('join'), onOptions: () => router.go('options') });
-  const options = createOptions(nav, () => router.go('menu'));
+  const options = createOptions({
+    nav,
+    get: () => audioSettings,
+    set: applyAudioSettings,
+    testSfx: () => mixer?.apply({ type: 'sfx', id: 'acerto', bus: 'sfx' }),
+    onBack: () => router.go('menu'),
+  });
   const join = createJoin({
     keyboard,
     onStart: (config, devices) => { router.go('match', { config, devices }); },
@@ -124,6 +166,7 @@ async function runGame(): Promise<void> {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const s = router.current();
     if (e.code === 'F1') { e.preventDefault(); const on = !fpsEl.classList.contains('is-on'); fpsEl.classList.toggle('is-on', on); match.setDebug(on); return; }
+    if (e.code === 'KeyM') { if (!e.repeat) { applyAudioSettings({ ...audioSettings, muted: !audioSettings.muted }); options.sync(); } return; }
     if (e.code === 'KeyN' && fpsEl.classList.contains('is-on') && s === 'match') { match.skipPhase(); return; }
     if (errorScreen.el.hidden === false) { if (nav.key(e.code)) e.preventDefault(); return; }
 
@@ -174,7 +217,7 @@ async function runGame(): Promise<void> {
 
     if (errorScreen.el.hidden === false) { for (const e of events) nav.pad(e.kind); return; }
     if (s === 'press-start') {
-      if (poll.joined.length > 0 || events.length > 0) { emitUi('confirmar'); router.go('menu'); }
+      if (poll.joined.length > 0 || events.length > 0) { wakeAudio(); emitUi('confirmar'); router.go('menu'); }
       return;
     }
     if (s === 'join') { join.pads(poll.joined, events); return; }
@@ -200,7 +243,17 @@ async function runGame(): Promise<void> {
     while (frames.length > 1 && now - frames[0] > 1000) frames.shift();
 
     handlePads(now);
+    if (actx?.state === 'suspended' && navigator.getGamepads?.()?.some((p) => p?.buttons.some((b) => b.pressed))) wakeAudio();
     match.update(real);
+
+    // áudio: o diretor traduz o quadro em comandos; sem mixer (ainda carregando ou sem áudio) só descarta a fila
+    const uiEvents = uiQueue.splice(0);
+    const events = match.drainEvents();
+    if (mixer) {
+      const s = router.current();
+      const cmds = director.update(Math.min(real, 0.1), { screen: s, state: s === 'match' ? match.state() : null, events, paused: match.isPaused(), uiEvents });
+      for (const c of cmds) mixer.apply(c);
+    }
 
     if (router.current() === 'match' && !match.isPaused()) {
       if (overTimer < 0 && match.isOver()) overTimer = RESULTS_DELAY;
