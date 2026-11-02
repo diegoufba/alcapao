@@ -1,4 +1,4 @@
-import { test, expect, describe } from 'vitest'
+import { test, expect, describe, afterEach, vi } from 'vitest'
 import { safeStorage, readJson, writeJson, type StorageLike } from '../src/storage'
 import { getRecord, submitRecord } from '../src/records'
 
@@ -24,6 +24,32 @@ describe('safeStorage', () => {
     expect(s.getItem('x')).toBeNull()
     s.setItem('x', '1')
     expect(s.getItem('x')).toBe('1')
+  })
+})
+
+describe('safeStorage com localStorage que falha ao gravar', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  test('valor gravado no fallback é o que getItem devolve depois', () => {
+    let failWrites = false
+    const store = new Map<string, string>()
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => {
+          if (failWrites) throw new Error('quota')
+          store.set(k, v)
+        },
+        removeItem: (k: string) => void store.delete(k),
+      },
+    })
+    const s = safeStorage()
+    s.setItem('k', 'antigo')
+    failWrites = true
+    s.setItem('k', 'v')
+    expect(s.getItem('k')).toBe('v')
   })
 })
 
@@ -75,6 +101,14 @@ describe('records', () => {
     expect(getRecord(s, 'points-12')).toBe(1200)
     expect(getRecord(s, 'points-16')).toBe(0)
     expect(getRecord(s, 'survival')).toBe(0)
+  })
+
+  test('valor não finito é rejeitado sem apagar os recordes', () => {
+    const s = memory()
+    submitRecord(s, 'survival', 5)
+    expect(submitRecord(s, 'points-8', Infinity)).toBe(false)
+    expect(submitRecord(s, 'points-8', NaN)).toBe(false)
+    expect(getRecord(s, 'survival')).toBe(5)
   })
 
   test('dados corrompidos ou inválidos são ignorados', () => {

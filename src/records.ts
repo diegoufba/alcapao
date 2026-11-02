@@ -14,7 +14,7 @@ export function getRecord(s: StorageLike, k: RecordKey): number {
 }
 
 export function submitRecord(s: StorageLike, k: RecordKey, value: number): boolean {
-  if (!(value > getRecord(s, k))) return false
+  if (!Number.isFinite(value) || value < 0 || !(value > getRecord(s, k))) return false
   const all = readJson<Records>(s, RECORDS_KEY, {}, isRecords)
   writeJson(s, RECORDS_KEY, { ...all, [k]: value })
   return true

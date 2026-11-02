@@ -23,6 +23,9 @@ export function safeStorage(): StorageLike {
   const memory = new Map<string, string>()
   return {
     getItem(k) {
+      // a value present in the map is a write that real storage rejected: it is newer
+      const fallback = memory.get(k)
+      if (fallback !== undefined) return fallback
       if (real) {
         try {
           return real.getItem(k)
@@ -36,6 +39,7 @@ export function safeStorage(): StorageLike {
       if (real) {
         try {
           real.setItem(k, v)
+          memory.delete(k)
           return
         } catch {
           // cai para a memória
