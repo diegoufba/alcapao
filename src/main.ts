@@ -6,6 +6,8 @@ import { createScene } from './render/scene';
 import { createArena } from './render/arena';
 import { createScreen } from './render/screen';
 import { createDebug } from './render/debug';
+import { createCharacter, type Pose } from './render/character';
+import { createEffects } from './render/effects';
 import type { GameState, ShownQuestion } from './core/types';
 
 const params = new URLSearchParams(location.search);
@@ -31,6 +33,7 @@ async function runShowcase(kind: string): Promise<void> {
   const arena = createArena(scene);
   const screen = createScreen(scene);
   const debug = createDebug(scene);
+  const effects = createEffects(scene);
   const mode = params.get('mode') === 'points' ? 'points' : 'survival';
   const totalRounds = mode === 'points' ? 12 : null;
   const round = mode === 'points' ? 6 : 4;
@@ -58,10 +61,32 @@ async function runShowcase(kind: string): Promise<void> {
     debug.setVisible(true);
   }
 
+  const cycle: Pose[] = ['idle', 'walk', 'push', 'cheer', 'fall'];
+  const chars = (kind === 'characters' ? (['P1', 'P2', 'P3', 'P4'] as const) : []).map((id, i) => {
+    const c = createCharacter(id);
+    scene.add(c.root);
+    return { c, x: -4.5 + i * 3, offset: i, lastStep: -1 };
+  });
+
   window.addEventListener('resize', resize);
   let prev = performance.now();
   renderer.setAnimationLoop((now: number) => {
-    arena.update(Math.min((now - prev) / 1000, 0.1)); prev = now;
+    const dt = Math.min((now - prev) / 1000, 0.1); prev = now;
+    arena.update(dt);
+    if (kind === 'characters') {
+      for (const ch of chars) {
+        const step = Math.floor(now / 1000) + ch.offset;
+        const pose = cycle[step % cycle.length];
+        if (step !== ch.lastStep) {
+          if (pose === 'fall') ch.c.playFall();
+          else if (cycle[(step + cycle.length - 1) % cycle.length] === 'fall') ch.c.playRespawnDrop();
+          if (pose === 'push') effects.pushPuff({ x: ch.x, z: 1.8 }, { x: 0, z: 1 });
+          ch.lastStep = step;
+        }
+        ch.c.update(dt, { pos: { x: ch.x, z: 1 }, facing: 0, speed: pose === 'walk' ? 4 : 0, pose, visible: true });
+      }
+      effects.update(dt);
+    }
     renderer.render(scene, camera);
     (window as unknown as { showcaseReady?: boolean }).showcaseReady = true;
   });
