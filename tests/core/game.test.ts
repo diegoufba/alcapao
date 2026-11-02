@@ -49,14 +49,11 @@ function steer(g: Game, id: PlayerId, target: Vec2): PlayerInput {
   return { move: d <= 0.3 ? { x: 0, z: 0 } : { x: dx / d, z: dz / d }, push: false };
 }
 
-const CENTER: Vec2 = { x: 0, z: 0 }; // faixa neutra: sem resposta
-
-/** `right` vão à plataforma correta; os demais, ao centro neutro. */
-const answer = (right: PlayerId[], others: PlayerId[]): InputsFn => (g) => {
+/** `right` vão à plataforma correta; os demais ficam parados (sem input) na faixa neutra. */
+const answer = (right: PlayerId[]): InputsFn => (g) => {
   const inputs: Partial<Record<PlayerId, PlayerInput>> = {};
   const q = g.state.question;
-  for (const id of right) inputs[id] = steer(g, id, q ? PLATFORM_CENTERS[q.correct] : CENTER);
-  for (const id of others) inputs[id] = steer(g, id, CENTER);
+  if (q) for (const id of right) inputs[id] = steer(g, id, PLATFORM_CENTERS[q.correct]);
   return inputs;
 };
 
@@ -76,7 +73,7 @@ describe('sequência de fases', () => {
     const events = runUntil(g, (x) => x.state.round === 2, (x) => {
       const ph = x.state.phase;
       if (seen[seen.length - 1] !== ph) seen.push(ph);
-      return answer([], ['P1', 'P2'])(x);
+      return answer([])(x);
     });
     expect(seen).toEqual(['question', 'lock', 'reveal', 'reset']);
     expect(g.state.phase).toBe('spin');
@@ -85,9 +82,8 @@ describe('sequência de fases', () => {
 
   test('durações: lock 0,5 s, reveal 3 s, reset 1,5 s', () => {
     const g = createGame({ mode: 'survival', players: ['P1', 'P2'], seed: 1 }, bank());
-    const wrong = answer([], ['P1', 'P2']);
+    const wrong = answer([]);
     run(g, 3, wrong);
-    for (const p of g.state.players) p.pos = { x: 0, z: 0 }; // faixa neutra: ninguém acerta
     g.debugSkipPhase();
     g.step(DT, wrong(g));
     expect(g.state.phase).toBe('lock');
@@ -122,7 +118,7 @@ describe('sequência de fases', () => {
 describe('Sobrevivência', () => {
   test('2 jogadores: quem erra cai e a partida termina com P1 em 1º', () => {
     const g = createGame({ mode: 'survival', players: ['P1', 'P2'], seed: 5 }, bank());
-    const evs = runUntil(g, inPhase('over'), answer(['P1'], ['P2']));
+    const evs = runUntil(g, inPhase('over'), answer(['P1']));
     expect(ofType(evs, 'revealed')[0].fallen).toEqual(['P2']);
     const over = ofType(evs, 'gameOver')[0];
     expect(over.ranking.map((r) => [r.id, r.pos])).toEqual([['P1', 1], ['P2', 2]]);
@@ -131,7 +127,7 @@ describe('Sobrevivência', () => {
 
   test('ambos errando: rodada anulada e a partida segue na rodada 2', () => {
     const g = createGame({ mode: 'survival', players: ['P1', 'P2'], seed: 5 }, bank());
-    const evs = runUntil(g, (x) => x.state.round === 2, answer([], ['P1', 'P2']));
+    const evs = runUntil(g, (x) => x.state.round === 2, answer([]));
     const rev = ofType(evs, 'revealed')[0];
     expect(rev.voided).toBe(true);
     expect(rev.fallen).toEqual([]);
@@ -141,7 +137,7 @@ describe('Sobrevivência', () => {
 
   test('solo errando termina com roundsSurvived 0', () => {
     const g = createGame({ mode: 'survival', players: ['P1'], seed: 5 }, bank());
-    const evs = runUntil(g, inPhase('over'), answer([], ['P1']));
+    const evs = runUntil(g, inPhase('over'), answer([]));
     const over = ofType(evs, 'gameOver')[0];
     expect(over.roundsSurvived).toBe(0);
     expect(over.ranking).toEqual([{ pos: 1, id: 'P1', eliminatedRound: 1 }]);
@@ -149,7 +145,7 @@ describe('Sobrevivência', () => {
 
   test('quem caiu perde inPlay no fim do reset; sobreviventes voltam ao spawn', () => {
     const g = createGame({ mode: 'survival', players: ['P1', 'P2', 'P3'], seed: 9 }, bank());
-    runUntil(g, (x) => x.state.round === 2, answer(['P1', 'P2'], ['P3']));
+    runUntil(g, (x) => x.state.round === 2, answer(['P1', 'P2']));
     const byId = Object.fromEntries(g.state.players.map((p) => [p.id, p]));
     expect(byId.P3.inPlay).toBe(false);
     expect(byId.P1.inPlay && byId.P2.inPlay).toBe(true);
@@ -162,7 +158,7 @@ describe('Sobrevivência', () => {
 describe('Pontos', () => {
   test('acerto na rodada 1 soma 100; respawned traz quem caiu e as posições voltam', () => {
     const g = createGame({ mode: 'points', rounds: 8, players: ['P1', 'P2'], seed: 2 }, bank());
-    const evs = runUntil(g, (x) => x.state.round === 2, answer(['P1'], ['P2']));
+    const evs = runUntil(g, (x) => x.state.round === 2, answer(['P1']));
     const rev = ofType(evs, 'revealed')[0];
     expect(rev.scored).toEqual({ P1: 100 });
     expect(rev.fallen).toEqual(['P2']);
@@ -178,12 +174,12 @@ describe('Pontos', () => {
 
   test('N=8, ninguém pontua: empate no topo dispara morte súbita com todos; P1 vence', () => {
     const g = createGame({ mode: 'points', rounds: 8, players: ['P1', 'P2'], seed: 4 }, bank());
-    const first = runUntil(g, (x) => x.state.suddenDeath !== null, answer([], ['P1', 'P2']));
+    const first = runUntil(g, (x) => x.state.suddenDeath !== null, answer([]));
     expect(ofType(first, 'suddenDeathStarted')).toEqual([{ type: 'suddenDeathStarted', players: ['P1', 'P2'] }]);
     expect(ofType(first, 'gameOver')).toHaveLength(0);
     expect(g.state.round).toBe(9);
 
-    const rest = runUntil(g, inPhase('over'), answer(['P1'], ['P2']));
+    const rest = runUntil(g, inPhase('over'), answer(['P1']));
     const q = ofType(rest, 'questionShown')[0].question;
     expect(q.difficulty).toBe(3);
     const over = ofType(rest, 'gameOver')[0];
@@ -193,7 +189,7 @@ describe('Pontos', () => {
 
   test('sem empate no topo, termina após N rodadas com o ranking por pontos', () => {
     const g = createGame({ mode: 'points', rounds: 8, players: ['P1', 'P2'], seed: 4 }, bank());
-    const evs = runUntil(g, inPhase('over'), answer(['P1'], ['P2']));
+    const evs = runUntil(g, inPhase('over'), answer(['P1']));
     expect(ofType(evs, 'suddenDeathStarted')).toHaveLength(0);
     const over = ofType(evs, 'gameOver')[0];
     expect(over.ranking[0]).toMatchObject({ id: 'P1', pos: 1 });
@@ -204,7 +200,7 @@ describe('Pontos', () => {
 
   test('morte súbita só entre os empatados; os demais viram espectadores', () => {
     const g = createGame({ mode: 'points', rounds: 8, players: ['P1', 'P2', 'P3'], seed: 4 }, bank());
-    const evs = runUntil(g, (x) => x.state.suddenDeath !== null, answer(['P1', 'P2'], ['P3']));
+    const evs = runUntil(g, (x) => x.state.suddenDeath !== null, answer(['P1', 'P2']));
     expect(ofType(evs, 'suddenDeathStarted')[0].players).toEqual(['P1', 'P2']);
     expect(g.state.suddenDeath).toEqual(['P1', 'P2']);
     expect(g.state.players.map((p) => p.inPlay)).toEqual([true, true, false]);
@@ -231,7 +227,7 @@ describe('perguntas esgotadas', () => {
   test('Sobrevivência: com 2 perguntas, na rodada 3 os dois vivos empatam em 1º', () => {
     const two = bank().filter((q) => q.id === 't0-0' || q.id === 't0-1');
     const g = createGame({ mode: 'survival', players: ['P1', 'P2'], seed: 1 }, two);
-    const evs = runUntil(g, inPhase('over'), answer(['P1', 'P2'], []));
+    const evs = runUntil(g, inPhase('over'), answer(['P1', 'P2']));
     expect(g.state.round).toBe(3);
     const over = ofType(evs, 'gameOver')[0];
     expect(over.ranking.map((r) => [r.id, r.pos])).toEqual([['P1', 1], ['P2', 1]]);
@@ -240,14 +236,14 @@ describe('perguntas esgotadas', () => {
   test('Solo: esgotar conta como fim normal com roundsSurvived = round - 1', () => {
     const one = bank().filter((q) => q.id === 't0-0');
     const g = createGame({ mode: 'survival', players: ['P1'], seed: 1 }, one);
-    const evs = runUntil(g, inPhase('over'), answer(['P1'], []));
+    const evs = runUntil(g, inPhase('over'), answer(['P1']));
     expect(ofType(evs, 'gameOver')[0].roundsSurvived).toBe(1);
   });
 
   test('Pontos: termina com o placar atual, sem morte súbita', () => {
     const two = bank().filter((q) => q.id === 't0-0' || q.id === 't0-1');
     const g = createGame({ mode: 'points', rounds: 8, players: ['P1', 'P2'], seed: 1 }, two);
-    const evs = runUntil(g, inPhase('over'), answer([], ['P1', 'P2']));
+    const evs = runUntil(g, inPhase('over'), answer([]));
     expect(ofType(evs, 'suddenDeathStarted')).toHaveLength(0);
     const over = ofType(evs, 'gameOver')[0];
     expect(over.ranking.map((r) => [r.id, r.pos])).toEqual([['P1', 1], ['P2', 1]]);
@@ -258,7 +254,7 @@ describe('perguntas esgotadas', () => {
     // 8 rodadas + 1 morte súbita precisam de 9 perguntas; o banco tem 8 -> esgota na morte súbita.
     const eight = bank().slice(0, 8);
     const g = createGame({ mode: 'points', rounds: 8, players: ['P1', 'P2', 'P3'], seed: 1 }, eight);
-    const evs = runUntil(g, inPhase('over'), answer([], ['P1', 'P2', 'P3']));
+    const evs = runUntil(g, inPhase('over'), answer([]));
     expect(ofType(evs, 'suddenDeathStarted')).toHaveLength(1);
     const over = ofType(evs, 'gameOver')[0];
     expect(over.ranking.map((r) => [r.id, r.pos])).toEqual([['P1', 1], ['P2', 1], ['P3', 1]]);
@@ -269,7 +265,7 @@ describe('geral', () => {
   test('mesma semente → mesma sequência de temas e perguntas', () => {
     const trace = (): string[] => {
       const g = createGame({ mode: 'points', rounds: 8, players: ['P1', 'P2'], seed: 77 }, bank());
-      const evs = run(g, 60, answer([], ['P1', 'P2']));
+      const evs = run(g, 60, answer([]));
       return evs.flatMap((e) =>
         e.type === 'themeChosen' ? [e.theme] : e.type === 'questionShown' ? [e.question.id, e.question.correct] : []);
     };
@@ -280,7 +276,7 @@ describe('geral', () => {
 
   test('após gameOver, step devolve [] e nada muda', () => {
     const g = createGame({ mode: 'survival', players: ['P1'], seed: 5 }, bank());
-    runUntil(g, inPhase('over'), answer([], ['P1']));
+    runUntil(g, inPhase('over'), answer([]));
     const snapshot = JSON.stringify(g.state);
     expect(g.step(DT, {})).toEqual([]);
     expect(JSON.stringify(g.state)).toBe(snapshot);

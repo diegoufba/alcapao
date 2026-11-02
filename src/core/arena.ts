@@ -11,10 +11,10 @@ export const PLATFORM_CENTERS: Record<Zone, Vec2> = {
 };
 
 export const SPAWNS: Record<PlayerId, Vec2> = {
-  P1: { x: -0.6, z: -0.6 },
-  P2: { x: 0.6, z: -0.6 },
-  P3: { x: -0.6, z: 0.6 },
-  P4: { x: 0.6, z: 0.6 },
+  P1: { x: 0, z: -0.9 },
+  P2: { x: 0.9, z: 0 },
+  P3: { x: 0, z: 0.9 },
+  P4: { x: -0.9, z: 0 },
 };
 
 const ZONES: Zone[] = ['A', 'B', 'C', 'D'];
