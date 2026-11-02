@@ -7,6 +7,46 @@ const ZONES: Zone[] = ['A', 'B', 'C', 'D'];
 const DOOR_OPEN_ANGLE = 1.25;
 const DOOR_OPEN_TIME = 0.4;
 
+const PIT_VERTEX = `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+const PIT_FRAGMENT = `
+uniform float uTime;
+varying vec2 vUv;
+void main() {
+  vec2 p = vUv * 2.0 - 1.0;
+  float r = length(p);
+  float edge = max(abs(p.x), abs(p.y));
+  float a = atan(p.y, p.x);
+
+  // Espiral hipnótica no centro do poço
+  float spiral = sin(a * 4.0 + r * 12.0 - uTime * 4.5);
+  float rings  = sin(r * 18.0 - uTime * 6.0);
+  float glow   = smoothstep(0.95, 0.15, r) * (0.5 + 0.5 * spiral) * 0.65
+               + smoothstep(0.85, 0.0, r) * (0.5 + 0.5 * rings) * 0.35;
+
+  vec3 deepColor = vec3(0.04, 0.02, 0.08);
+  vec3 vortexCol = vec3(0.38, 0.16, 0.68);
+  vec3 col = mix(deepColor, vortexCol, glow * smoothstep(0.05, 0.6, r));
+
+  // Faixa de alerta nas bordas internas do alçapão
+  float rimBand = smoothstep(0.82, 0.90, edge) * smoothstep(0.98, 0.92, edge);
+  float stripes = step(0.0, sin((p.x + p.y) * 18.0 + uTime * 4.0));
+  col = mix(col, mix(vec3(1.0, 0.42, 0.29), vec3(0.12, 0.10, 0.18), stripes), rimBand * 0.85);
+
+  // Escurece o miolo para dar sensação de fundo infinito
+  col *= smoothstep(0.0, 0.28, r);
+
+  gl_FragColor = vec4(col, 1.0);
+  #include <colorspace_fragment>
+}
+`;
+
 /** Clareia uma cor #RRGGBB em direção ao branco (t = 0..1). */
 function lighten(hex: string, t: number): string {
   const c = new THREE.Color(hex).lerp(new THREE.Color('#FFFFFF'), t);
@@ -68,17 +108,39 @@ export function createArena(scene: THREE.Scene): {
 
   const parts = {} as Record<Zone, PlatformParts>;
   const doorGeo = new THREE.BoxGeometry(2, 0.12, 4);
-  const pitMat = new THREE.MeshBasicMaterial({ color: '#120F1C' });
+  const uTime = { value: 0 };
+  const pitMat = new THREE.ShaderMaterial({
+    vertexShader: PIT_VERTEX,
+    fragmentShader: PIT_FRAGMENT,
+    uniforms: { uTime },
+  });
   const sideMat = flatMaterial(INK);
 
   for (const zone of ZONES) {
     const { x, z } = PLATFORM_CENTERS[zone];
     const normal = new THREE.MeshLambertMaterial({ map: platformTexture(zone, false) });
     const highlight = new THREE.MeshLambertMaterial({ map: platformTexture(zone, true), emissive: '#FFFFFF', emissiveIntensity: 0.18 });
+    highlight.onBeforeCompile = (shader) => {
+      shader.uniforms.uTime = uTime;
+      shader.vertexShader = `varying vec2 vPulseUv;\n${shader.vertexShader}`.replace(
+        '#include <uv_vertex>',
+        '#include <uv_vertex>\nvPulseUv = uv;',
+      );
+      shader.fragmentShader = `uniform float uTime;\nvarying vec2 vPulseUv;\n${shader.fragmentShader}`.replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
+        vec2 pUv = abs(vPulseUv * 2.0 - 1.0);
+        float boxDist = max(pUv.x, pUv.y);
+        float wave = fract(boxDist * 1.6 - uTime * 1.8);
+        float ring = smoothstep(0.0, 0.2, wave) * smoothstep(0.55, 0.2, wave);
+        float borderGlow = smoothstep(0.72, 0.92, boxDist) * (0.55 + 0.45 * sin(uTime * 8.0));
+        totalEmissiveRadiance += vec3(1.0, 0.96, 0.78) * (ring * 0.45 + borderGlow * 0.55);`,
+      );
+    };
     const tile = new THREE.Mesh(new THREE.BoxGeometry(4, 0.16, 4), [sideMat, sideMat, normal, sideMat, sideMat, sideMat]);
     tile.position.set(x, 0.08, z); tile.receiveShadow = true; scene.add(tile);
 
-    const pit = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 4), pitMat);
+    const pit = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 4), [sideMat, sideMat, pitMat, sideMat, sideMat, sideMat]);
     pit.position.set(x, 0.03, z); pit.visible = false; scene.add(pit);
 
     const doorMat = flatMaterial(ZONE_STYLE[zone].color);
@@ -124,6 +186,7 @@ export function createArena(scene: THREE.Scene): {
   }
 
   function update(dt: number): void {
+    uTime.value += Math.min(dt, 0.1);
     if (opening.length === 0 || openProgress >= 1) return;
     openProgress = Math.min(1, openProgress + dt / DOOR_OPEN_TIME);
     applyDoors();

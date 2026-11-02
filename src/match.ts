@@ -156,6 +156,7 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
       const dt = Math.min(realDt, 0.1);
       clock += dt;
       arena.update(dt);
+      screen.update(dt);
       effects.update(dt);
       if (!game || !devices) return;
       const state = game.state;

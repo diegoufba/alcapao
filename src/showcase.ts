@@ -22,7 +22,7 @@ export async function runShowcase(kind: string, params: URLSearchParams): Promis
   app.replaceChildren(canvas);
 
   await Promise.all([document.fonts.load('40px "Titan One"'), document.fonts.load('700 40px Nunito'), document.fonts.load('800 40px Nunito')]);
-  const { renderer, scene, camera, resize } = createScene(canvas);
+  const { renderer, scene, camera, resize, update: updateScene } = createScene(canvas);
   const arena = createArena(scene);
   const screen = createScreen(scene);
   const debug = createDebug(scene);
@@ -66,7 +66,9 @@ export async function runShowcase(kind: string, params: URLSearchParams): Promis
   let prev = performance.now();
   renderer.setAnimationLoop((now: number) => {
     const dt = Math.min((now - prev) / 1000, 0.1); prev = now;
+    updateScene(dt, sd || kind === 'suddenDeath');
     arena.update(dt);
+    screen.update(dt);
     if (kind === 'characters') {
       for (const ch of chars) {
         const step = Math.floor(now / 1000) + ch.offset;

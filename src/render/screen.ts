@@ -12,6 +12,43 @@ const ZONES: Zone[] = ['A', 'B', 'C', 'D'];
 const TITLE = '"Titan One"';
 const BODY = 'Nunito';
 
+const SCREEN_VERTEX = `
+varying vec2 vUv;
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
+const SCREEN_FRAGMENT = `
+uniform sampler2D uMap;
+uniform float uTime;
+varying vec2 vUv;
+void main() {
+  vec4 tex = texture2D(uMap, vUv);
+  vec3 col = tex.rgb;
+
+  // Grade sutil de LEDs / scanlines do telão de TV
+  vec2 grid = fract(vUv * vec2(320.0, 120.0)) - 0.5;
+  float cell = 1.0 - smoothstep(0.32, 0.5, max(abs(grid.x), abs(grid.y)));
+  float scan = 0.96 + 0.04 * sin(vUv.y * 600.0 * 3.14159);
+  col *= mix(0.93, 1.03, cell) * scan;
+
+  // Reflexo diagonal suave (sheen) passando pela tela periodicamente
+  float sweepPos = mod(uTime * 0.45, 3.2) - 0.8;
+  float sheen = smoothstep(0.18, 0.0, abs((vUv.x + vUv.y * 0.45) - sweepPos));
+  col += vec3(1.0) * sheen * 0.09;
+
+  // Vinheta sutil nas bordas da tela
+  vec2 d = vUv * 2.0 - 1.0;
+  float vig = 1.0 - dot(d, d) * 0.08;
+  col *= clamp(vig, 0.85, 1.0);
+
+  gl_FragColor = vec4(col, tex.a);
+  #include <colorspace_fragment>
+}
+`;
+
 function rr(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {
   ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
 }
@@ -142,7 +179,7 @@ function viewKey(view: ScreenView): string {
   return JSON.stringify(view.kind === 'question' ? { ...view, timeLeft: Math.ceil(view.timeLeft) } : view);
 }
 
-export function createScreen(scene: THREE.Scene): { draw(view: ScreenView): void } {
+export function createScreen(scene: THREE.Scene): { draw(view: ScreenView): void; update(dt: number): void } {
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
@@ -172,6 +209,16 @@ export function createScreen(scene: THREE.Scene): { draw(view: ScreenView): void
     .then(paint)
     .catch(() => {});
 
+  const uTime = { value: 0 };
+  const faceMat = new THREE.ShaderMaterial({
+    vertexShader: SCREEN_VERTEX,
+    fragmentShader: SCREEN_FRAGMENT,
+    uniforms: {
+      uMap: { value: texture },
+      uTime,
+    },
+  });
+
   // Moldura laranja com faixa de lâmpadas no topo e contorno escuro em volta da tela.
   const tel = new THREE.Group();
   const outline = new THREE.Mesh(new THREE.BoxGeometry(17.4, 7.8, 0.4), flatMaterial(INK));
@@ -188,7 +235,7 @@ export function createScreen(scene: THREE.Scene): { draw(view: ScreenView): void
   }
   const border = new THREE.Mesh(new THREE.PlaneGeometry(16.3, 6.3), new THREE.MeshBasicMaterial({ color: INK }));
   border.position.z = 0.255; tel.add(border);
-  const face = new THREE.Mesh(new THREE.PlaneGeometry(16, 6), new THREE.MeshBasicMaterial({ map: texture }));
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(16, 6), faceMat);
   face.position.z = 0.26; tel.add(face);
   for (const s of [-1, 1]) {
     const pole = new THREE.Mesh(new THREE.BoxGeometry(0.5, 8, 0.5), flatMaterial('#2A2540'));
@@ -198,5 +245,9 @@ export function createScreen(scene: THREE.Scene): { draw(view: ScreenView): void
   tel.traverse(o => { if (o instanceof THREE.Mesh && o !== face && o !== border && o.material !== bulbMat) { o.receiveShadow = true; } });
   scene.add(tel);
 
-  return { draw };
+  function update(dt: number): void {
+    uTime.value += Math.min(dt, 0.1);
+  }
+
+  return { draw, update };
 }

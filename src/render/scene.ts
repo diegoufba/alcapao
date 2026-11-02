@@ -57,10 +57,54 @@ function cloud(x: number, y: number, z: number, s: number): THREE.Group {
   return g;
 }
 
-/** Tufos de grama espalhados pelo campo, num único InstancedMesh. Posições fixas (sem aleatoriedade por partida). */
-function grass(scene: THREE.Scene): void {
+const SKY_VERTEX = `
+varying vec3 vWorldPos;
+void main() {
+  vec4 wp = modelMatrix * vec4(position, 1.0);
+  vWorldPos = wp.xyz;
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}
+`;
+
+const SKY_FRAGMENT = `
+uniform float uSuddenDeath;
+varying vec3 vWorldPos;
+void main() {
+  float h = clamp((vWorldPos.y + 4.0) / 48.0, 0.0, 1.0);
+  vec3 dayBottom = vec3(0.76, 0.93, 1.0);
+  vec3 dayTop    = vec3(0.42, 0.76, 0.99);
+  vec3 sdBottom  = vec3(1.0, 0.42, 0.28);
+  vec3 sdMid     = vec3(0.62, 0.20, 0.48);
+  vec3 sdTop     = vec3(0.18, 0.08, 0.28);
+
+  vec3 day = mix(dayBottom, dayTop, smoothstep(0.0, 1.0, h));
+  vec3 sd  = mix(sdBottom, sdMid, smoothstep(0.0, 0.45, h));
+  sd       = mix(sd, sdTop, smoothstep(0.35, 1.0, h));
+
+  vec3 col = mix(day, sd, uSuddenDeath);
+  gl_FragColor = vec4(col, 1.0);
+  #include <colorspace_fragment>
+}
+`;
+
+/** Tufos de grama espalhados pelo campo, num único InstancedMesh com vertex shader de vento. */
+function grass(scene: THREE.Scene, uTime: { value: number }): void {
   const geo = new THREE.ConeGeometry(0.12, 0.45, 4);
-  const tufts = new THREE.InstancedMesh(geo, flatMaterial('#5DB847'), 420);
+  const mat = flatMaterial('#5DB847');
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = uTime;
+    shader.vertexShader = `uniform float uTime;\n${shader.vertexShader}`.replace(
+      '#include <begin_vertex>',
+      `#include <begin_vertex>
+      float tip = clamp((position.y + 0.225) / 0.45, 0.0, 1.0);
+      vec4 instPos = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);
+      float wave = sin(uTime * 2.8 + instPos.x * 0.45 + instPos.z * 0.35) * 0.11
+                 + cos(uTime * 1.7 - instPos.z * 0.5) * 0.05;
+      transformed.x += wave * tip * tip;
+      transformed.z += wave * 0.5 * tip * tip;`
+    );
+  };
+  const tufts = new THREE.InstancedMesh(geo, mat, 420);
   const m = new THREE.Matrix4();
   let n = 0, seed = 7;
   const rnd = (): number => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
@@ -74,7 +118,11 @@ function grass(scene: THREE.Scene): void {
 }
 
 export function createScene(canvas: HTMLCanvasElement): {
-  renderer: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.PerspectiveCamera; resize(): void;
+  renderer: THREE.WebGLRenderer;
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  resize(): void;
+  update(dt: number, suddenDeath?: boolean): void;
 } {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -83,10 +131,35 @@ export function createScene(canvas: HTMLCanvasElement): {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   const scene = new THREE.Scene();
+  const fogColorDay = new THREE.Color(SKY);
+  const fogColorSd = new THREE.Color('#D85A4A');
+  const fog = new THREE.Fog(SKY, 34, 70);
   scene.background = new THREE.Color(SKY);
-  scene.fog = new THREE.Fog(SKY, 34, 70);
+  scene.fog = fog;
 
-  scene.add(new THREE.HemisphereLight('#E6F6FF', '#6FA65A', 1.6));
+  const uTime = { value: 0 };
+  const uSuddenDeath = { value: 0 };
+
+  const skyDome = new THREE.Mesh(
+    new THREE.SphereGeometry(110, 32, 20),
+    new THREE.ShaderMaterial({
+      vertexShader: SKY_VERTEX,
+      fragmentShader: SKY_FRAGMENT,
+      uniforms: { uSuddenDeath },
+      side: THREE.BackSide,
+      depthWrite: false,
+      fog: false,
+    }),
+  );
+  scene.add(skyDome);
+
+  const hemi = new THREE.HemisphereLight('#E6F6FF', '#6FA65A', 1.6);
+  scene.add(hemi);
+  const hemiSkyDay = new THREE.Color('#E6F6FF');
+  const hemiSkySd = new THREE.Color('#FF9E80');
+  const hemiGroundDay = new THREE.Color('#6FA65A');
+  const hemiGroundSd = new THREE.Color('#4B2D54');
+
   const sun = new THREE.DirectionalLight('#FFF6E6', 2.2);
   sun.position.set(6, 16, 10);
   sun.castShadow = true;
@@ -98,14 +171,14 @@ export function createScene(canvas: HTMLCanvasElement): {
   ground.position.y = -1.6;
   ground.receiveShadow = true;
   scene.add(ground);
-  grass(scene);
+  grass(scene, uTime);
   for (const [x, y, z, s] of [[-17, 13, -26, 1.6], [-8, 16.5, -30, 1.3], [12, 15, -28, 1.5], [21, 11.5, -24, 1.2], [-24, 9, -20, 1.1]] as const) {
     scene.add(cloud(x, y, z, s));
   }
 
-  const camera = new THREE.PerspectiveCamera(42, 16 / 9, 0.1, 200);
-  camera.position.set(0, 10.5, 15.5);
-  camera.lookAt(0, 2.6, -2.6);
+  const camera = new THREE.PerspectiveCamera(42, 16 / 9, 0.1, 240);
+  camera.position.set(0, 11.7, 18.2);
+  camera.lookAt(0, 2.0, -2.6);
 
   function resize(): void {
     const w = canvas.clientWidth || window.innerWidth;
@@ -116,5 +189,15 @@ export function createScene(canvas: HTMLCanvasElement): {
   }
   resize();
 
-  return { renderer, scene, camera, resize };
+  function update(dt: number, suddenDeath = false): void {
+    const step = Math.min(dt, 0.1);
+    uTime.value += step;
+    const target = suddenDeath ? 1 : 0;
+    uSuddenDeath.value += (target - uSuddenDeath.value) * (1 - Math.exp(-3 * step));
+    fog.color.copy(fogColorDay).lerp(fogColorSd, uSuddenDeath.value);
+    hemi.color.copy(hemiSkyDay).lerp(hemiSkySd, uSuddenDeath.value);
+    hemi.groundColor.copy(hemiGroundDay).lerp(hemiGroundSd, uSuddenDeath.value);
+  }
+
+  return { renderer, scene, camera, resize, update };
 }

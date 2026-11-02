@@ -62,7 +62,7 @@ async function runGame(): Promise<void> {
   app.replaceChildren(canvas, hudRoot, fpsEl, ui);
 
   await Promise.all([document.fonts.load('40px "Titan One"'), document.fonts.load('700 40px Nunito'), document.fonts.load('800 40px Nunito')]);
-  const { renderer, scene, camera, resize } = createScene(canvas);
+  const { renderer, scene, camera, resize, update: updateScene } = createScene(canvas);
   const { bank, error } = await loadBank();
 
   const storage = safeStorage(); // uma única instância, repassada às telas
@@ -253,6 +253,8 @@ async function runGame(): Promise<void> {
     handlePads(now);
     if (actx?.state === 'suspended' && navigator.getGamepads?.()?.some((p) => p?.buttons.some((b) => b.pressed))) wakeAudio();
     match.update(real);
+    const activeState = router.current() === 'match' ? match.state() : null;
+    updateScene(real, Boolean(activeState?.suddenDeath));
 
     // áudio: o diretor traduz o quadro em comandos; sem mixer (ainda carregando ou sem áudio) só descarta a fila
     const uiEvents = uiQueue.splice(0);
