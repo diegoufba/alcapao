@@ -79,7 +79,7 @@ export async function runShowcase(kind: string, params: URLSearchParams): Promis
           if (pose === 'push') effects.pushPuff({ x: ch.x, z: 1.8 }, { x: 0, z: 1 });
           ch.lastStep = step;
         }
-        ch.c.update(dt, { pos: { x: ch.x, z: 1 }, facing: 0, speed: pose === 'walk' ? 4 : 0, pose, visible: true });
+        ch.c.update(dt, { pos: { x: ch.x, z: 1 }, facing: 0, speed: pose === 'walk' ? 5 : 0, pose, visible: true });
       }
       effects.update(dt);
     }

@@ -2,7 +2,7 @@ import { ARENA_HALF } from './arena';
 import type { GameEvent, PlayerId, PlayerInput, PlayerState } from './types';
 
 export const RADIUS = 0.4;
-export const MAX_SPEED = 4;
+export const MAX_SPEED = 5;
 export const ACCEL_TIME = 0.1;
 export const PUSH_RANGE = 1.2;
 export const PUSH_HALF_ANGLE = Math.PI / 4;

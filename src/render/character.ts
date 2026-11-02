@@ -105,8 +105,8 @@ export function createCharacter(id: PlayerId): Character {
 
       let tx = 0, tz = 0.18, lx = 0, swing = 0;
       if (pose === 'walk') {
-        const k = Math.min(s.speed / 4, 1.5);
-        walkPhase += dt * 8 * k;
+        const k = Math.min(s.speed / 5, 1.5);
+        walkPhase += dt * 10 * k;
         swing = Math.sin(walkPhase) * 0.9 * k;
         lx = swing; lean = 0.06 * k;
       } else if (pose === 'push') { tx = -Math.PI / 2.1; lean = 0.12; }

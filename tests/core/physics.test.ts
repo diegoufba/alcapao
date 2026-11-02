@@ -25,11 +25,11 @@ function run(players: PlayerState[], inputs: Partial<Record<PlayerId, PlayerInpu
 beforeEach(() => resetPhysicsMemory());
 
 describe('movimento', () => {
-  test('em 1 s andando para +x, pos.x entre 3,6 e 4,0 e facing ≈ π/2', () => {
+  test('em 1 s andando para +x, pos.x entre 4,4 e 4,8 e facing ≈ π/2', () => {
     const p = mk('P1', 0, 0);
     run([p], { P1: mv(1, 0) }, 1);
-    expect(p.pos.x).toBeGreaterThan(3.6);
-    expect(p.pos.x).toBeLessThan(4.0);
+    expect(p.pos.x).toBeGreaterThan(4.4);
+    expect(p.pos.x).toBeLessThan(4.8);
     expect(p.facing).toBeCloseTo(Math.PI / 2, 6);
   });
 
