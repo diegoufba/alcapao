@@ -45,7 +45,9 @@ export function stepPhysics(
     p.pushCooldown = Math.max(0, p.pushCooldown - dt);
     p.frozen = Math.max(0, p.frozen - dt);
     p.knockTime = Math.max(0, p.knockTime - dt);
-    const move = inputs[p.id]?.move ?? { x: 0, z: 0 };
+    const raw = inputs[p.id]?.move ?? { x: 0, z: 0 };
+    const mag = Math.hypot(raw.x, raw.z);
+    const move = mag > 1 ? { x: raw.x / mag, z: raw.z / mag } : raw;
     const wanted = move.x !== 0 || move.z !== 0;
     const blocked = p.frozen > 0 || p.knockTime > 0 || !opts.allowMove;
     const tx = wanted && !blocked ? move.x * MAX_SPEED : 0;
@@ -89,6 +91,8 @@ export function stepPhysics(
   }
   for (const { by } of pushes) {
     by.frozen = PUSH_FREEZE;
+    by.vel.x = 0;
+    by.vel.z = 0;
     by.pushCooldown = PUSH_COOLDOWN;
   }
 

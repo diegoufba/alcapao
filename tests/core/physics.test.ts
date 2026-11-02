@@ -1,6 +1,6 @@
 import { test, expect, describe, beforeEach } from 'vitest';
 import {
-  stepPhysics, resetPhysicsMemory, RADIUS, PUSH_COOLDOWN,
+  stepPhysics, resetPhysicsMemory, RADIUS, PUSH_COOLDOWN, MAX_SPEED,
 } from '../../src/core/physics';
 import type { PlayerId, PlayerInput, PlayerState } from '../../src/core/types';
 
@@ -31,6 +31,19 @@ describe('movimento', () => {
     expect(p.pos.x).toBeGreaterThan(3.6);
     expect(p.pos.x).toBeLessThan(4.0);
     expect(p.facing).toBeCloseTo(Math.PI / 2, 6);
+  });
+
+  test('diagonal {1,1} não excede MAX_SPEED', () => {
+    const p = mk('P1', -5, -5);
+    let maxSpeed = 0;
+    for (let i = 0; i < 60; i++) {
+      const before = { x: p.pos.x, z: p.pos.z };
+      stepPhysics([p], { P1: mv(1, 1) }, DT, ON);
+      maxSpeed = Math.max(maxSpeed, Math.hypot(p.vel.x, p.vel.z));
+      expect(Math.hypot(p.pos.x - before.x, p.pos.z - before.z) / DT).toBeLessThanOrEqual(MAX_SPEED + 1e-9);
+    }
+    expect(maxSpeed).toBeLessThanOrEqual(MAX_SPEED + 1e-9);
+    expect(Math.hypot(p.pos.x + 5, p.pos.z + 5)).toBeLessThanOrEqual(MAX_SPEED + 1e-9);
   });
 
   test('allowMove false: ninguém se move', () => {
@@ -136,6 +149,17 @@ describe('empurrão', () => {
     stepPhysics(ps, { P1: mv(0, 0, true) }, DT, ON);
     run(ps, { P1: mv(1, 0) }, 0.28);
     expect(ps[0].pos).toEqual({ x: 0, z: 0 });
+  });
+
+  test('pusher em velocidade máxima para ao empurrar', () => {
+    const ps = duel(10, 10);
+    ps[1].inPlay = false;
+    run(ps, { P1: mv(1, 0) }, 1);
+    stepPhysics(ps, { P1: mv(1, 0, true) }, DT, ON);
+    const at = { x: ps[0].pos.x, z: ps[0].pos.z };
+    run(ps, { P1: mv(1, 0) }, 0.28);
+    expect(Math.abs(ps[0].pos.x - at.x)).toBeLessThan(1e-9);
+    expect(Math.abs(ps[0].pos.z - at.z)).toBeLessThan(1e-9);
   });
 
   test('empurrão mútuo no mesmo passo: dois eventos e se afastam', () => {
