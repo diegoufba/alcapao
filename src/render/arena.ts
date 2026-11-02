@@ -8,11 +8,16 @@ const DOOR_OPEN_ANGLE = 1.25;
 const DOOR_OPEN_TIME = 0.4;
 const SIDE = '#2E3768';
 
-function platformTexture(letter: Zone, highlighted: boolean): THREE.CanvasTexture {
+// A textura é pintada na hora e repintada quando a fonte Bungee termina de carregar.
+function platformTexture(letter: Zone, highlighted: boolean): { texture: THREE.CanvasTexture; repaint(): void } {
   const c = document.createElement('canvas');
   c.width = 512; c.height = 512;
   const ctx = c.getContext('2d');
-  if (ctx) {
+  const texture = new THREE.CanvasTexture(c);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 8;
+  function repaint(): void {
+    if (!ctx) return;
     ctx.fillStyle = highlighted ? '#3A3410' : '#3B4680';
     ctx.fillRect(0, 0, 512, 512);
     ctx.strokeStyle = highlighted ? ACCENT : '#6A78C0';
@@ -22,11 +27,10 @@ function platformTexture(letter: Zone, highlighted: boolean): THREE.CanvasTextur
     ctx.font = '230px Bungee';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(letter, 256, 266);
+    texture.needsUpdate = true;
   }
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 8;
-  return t;
+  repaint();
+  return { texture, repaint };
 }
 
 interface PlatformParts {
@@ -47,6 +51,9 @@ export function createArena(scene: THREE.Scene): {
   const top = new THREE.Mesh(new THREE.BoxGeometry(size, 0.05, size), flatMaterial('#2C3460'));
   top.receiveShadow = true; scene.add(top);
 
+  const repaints: (() => void)[] = [];
+  void document.fonts.load('230px Bungee').then(() => repaints.forEach(r => r())).catch(() => {});
+
   const parts = {} as Record<Zone, PlatformParts>;
   const doorGeo = new THREE.BoxGeometry(2, 0.12, 4);
   const doorMat = flatMaterial('#3B4680');
@@ -55,8 +62,11 @@ export function createArena(scene: THREE.Scene): {
 
   for (const zone of ZONES) {
     const { x, z } = PLATFORM_CENTERS[zone];
-    const normal = new THREE.MeshLambertMaterial({ map: platformTexture(zone, false) });
-    const highlight = new THREE.MeshLambertMaterial({ map: platformTexture(zone, true), emissive: '#5A4A00' });
+    const normalTex = platformTexture(zone, false);
+    const highlightTex = platformTexture(zone, true);
+    repaints.push(normalTex.repaint, highlightTex.repaint);
+    const normal = new THREE.MeshLambertMaterial({ map: normalTex.texture });
+    const highlight = new THREE.MeshLambertMaterial({ map: highlightTex.texture, emissive: '#5A4A00' });
     const tile = new THREE.Mesh(new THREE.BoxGeometry(4, 0.16, 4), [sideMat, sideMat, normal, sideMat, sideMat, sideMat]);
     tile.position.set(x, 0.08, z); tile.receiveShadow = true; scene.add(tile);
 

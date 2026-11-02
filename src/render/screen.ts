@@ -162,7 +162,8 @@ export function createScreen(scene: THREE.Scene): { draw(view: ScreenView): void
 
   // As fontes embutidas carregam de forma assíncrona: redesenha quando chegarem.
   void Promise.all([document.fonts.load('40px Bungee'), document.fonts.load('600 40px Rubik'), document.fonts.load('500 40px Rubik')])
-    .then(paint);
+    .then(paint)
+    .catch(() => {});
 
   const tel = new THREE.Group();
   tel.add(new THREE.Mesh(new THREE.BoxGeometry(17, 6.8, 0.5), flatMaterial('#2A3157')));
