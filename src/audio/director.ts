@@ -170,7 +170,7 @@ export class AudioDirector {
         const scored = Object.keys(e.scored).length > 0
         const someoneRight =
           !e.voided &&
-          (state?.mode === 'points'
+          (state?.mode === 'points' && !state.suddenDeath // morte súbita não pontua: infere como Sobrevivência
             ? scored
             : state !== null && state.players.some((p) => p.inPlay && !e.fallen.includes(p.id)))
         if (someoneRight) sfx('acerto')

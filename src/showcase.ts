@@ -31,15 +31,16 @@ export async function runShowcase(kind: string, params: URLSearchParams): Promis
   const totalRounds = mode === 'points' ? 12 : null;
   const round = mode === 'points' ? 6 : 4;
 
+  const sd = params.has('sd');
   if (kind === 'reveal') {
-    screen.draw({ kind: 'reveal', q: EXAMPLE, round, totalRounds, mode });
+    screen.draw({ kind: 'reveal', q: EXAMPLE, round, totalRounds, mode, suddenDeath: sd });
     arena.setRevealed('B', ['A']);
   } else if (kind === 'spin') {
     screen.draw({ kind: 'spin', themes: ['Geografia', 'História', 'Ciência', 'Esportes', 'Cinema', 'Música'], highlighted: 'Ciência', round, totalRounds });
   } else if (kind === 'suddenDeath') {
     screen.draw({ kind: 'suddenDeath', players: ['P1', 'P3'] });
   } else {
-    screen.draw({ kind: 'question', q: EXAMPLE, timeLeft: 5.2, round, totalRounds, mode });
+    screen.draw({ kind: 'question', q: EXAMPLE, timeLeft: 5.2, round, totalRounds, mode, suddenDeath: sd });
   }
 
   if (params.has('debug')) {

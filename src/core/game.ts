@@ -15,6 +15,8 @@ export type GameConfig =
 export interface Game {
   readonly state: GameState;
   step(dt: number, inputs: Partial<Record<PlayerId, PlayerInput>>): GameEvent[];
+  /** Temas que ainda têm perguntas (a roleta mostra só estes). */
+  availableThemes(): string[];
   /** Pula para o fim da fase atual (o próximo step já entra na fase seguinte). */
   debugSkipPhase(): void;
 }
@@ -134,8 +136,15 @@ export function createGame(config: GameConfig, questions: Question[]): Game {
 
   function reset(): void {
     if (!points || state.suddenDeath !== null) return;
-    const fallen = state.players.filter((p) => p.fallen).map((p) => p.id);
-    if (fallen.length > 0) emit({ type: 'respawned', players: fallen });
+    const fallen = state.players.filter((p) => p.fallen);
+    for (const p of fallen) { // reaparece no slot, caindo do alto (o flag `fallen` só cai no fim do RESET)
+      p.pos = { ...SPAWNS[p.id] };
+      p.vel = { x: 0, z: 0 };
+      p.knockVel = { x: 0, z: 0 };
+      p.knockTime = 0;
+      p.frozen = 0;
+    }
+    if (fallen.length > 0) emit({ type: 'respawned', players: fallen.map((p) => p.id) });
   }
 
   /** Fim do RESET: reposiciona, limpa a rodada e decide o que vem. */
@@ -204,6 +213,7 @@ export function createGame(config: GameConfig, questions: Question[]): Game {
       if (state.phaseTime <= EPS) endPhase();
       return events;
     },
+    availableThemes: () => picker.availableThemes(),
     debugSkipPhase() {
       state.phaseTime = 0;
     },

@@ -143,6 +143,20 @@ describe('revelação', () => {
     expect(sfxIds(out)).toEqual(['revelacao', 'acerto', 'pontos'])
   })
 
+  test('morte súbita (scored vazio): quem ficou de pé gera acerto, sem pontos', () => {
+    const d = base()
+    const ev: GameEvent = { type: 'revealed', correct: 'A', fallen: ['P2'], voided: false, scored: {} }
+    const state = makeState({ mode: 'points', phase: 'reveal', suddenDeath: ['P1', 'P2'], players: [player('P1'), player('P2', { fallen: true })] })
+    expect(sfxIds(d.update(DT, ctx({ state, events: [ev] })))).toEqual(['revelacao', 'alcapao', 'queda', 'acerto'])
+  })
+
+  test('morte súbita anulada: sem acerto', () => {
+    const d = base()
+    const ev: GameEvent = { type: 'revealed', correct: 'A', fallen: [], voided: true, scored: {} }
+    const state = makeState({ mode: 'points', phase: 'reveal', suddenDeath: ['P1', 'P2'] })
+    expect(sfxIds(d.update(DT, ctx({ state, events: [ev] })))).toEqual(['revelacao', 'anulada'])
+  })
+
   test('modo pontos sem ninguém pontuando não gera acerto', () => {
     const d = base()
     const ev: GameEvent = { type: 'revealed', correct: 'A', fallen: [], voided: false, scored: {} }

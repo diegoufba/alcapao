@@ -16,6 +16,17 @@ function wonSuddenDeath(ranking: RankEntry[]): boolean {
   return !!a && !!b && a.pos === 1 && b.pos === 2 && a.score !== undefined && a.score === b.score;
 }
 
+/** Quem empatou no topo com o vencedor da morte súbita (mesma pontuação, fora o 1º). */
+export function tiedWith(ranking: RankEntry[]): PlayerId[] {
+  const [first, ...rest] = ranking;
+  return rest.filter((r) => r.score === first?.score).map((r) => r.id);
+}
+
+/** "P2", "P2 e P3", "P2, P3 e P4". */
+export function listIds(ids: string[]): string {
+  return ids.length <= 1 ? (ids[0] ?? '') : `${ids.slice(0, -1).join(', ')} e ${ids[ids.length - 1]}`;
+}
+
 function rowInfo(r: RankEntry, mode: MatchResult['mode'], sd: boolean): string {
   if (mode === 'survival') return r.eliminatedRound === undefined ? 'Sobreviveu' : `Caiu na rodada ${r.eliminatedRound}`;
   const base = `${fmt(r.score ?? 0)} pts`;
@@ -29,7 +40,7 @@ function subtitle(res: MatchResult, sd: boolean): string {
     return `Último de pé após ${last} ${plural(last, 'rodada', 'rodadas')}`;
   }
   const n = res.rounds ?? 0;
-  if (sd) return `Empate com ${res.ranking[1].id} em ${n} rodadas, decidido na morte súbita`;
+  if (sd) return `Empate com ${listIds(tiedWith(res.ranking))} em ${n} rodadas, decidido na morte súbita`;
   return first ? `${n} rodadas` : '';
 }
 
@@ -40,7 +51,7 @@ function multi(res: MatchResult): HTMLElement[] {
   const lead = winners[0]?.id ?? 'P1';
   const title = h('h1', 'result-title', tie ? 'EMPATE!' : `${lead} VENCEU!`);
   title.style.color = tie ? 'var(--accent)' : PLAYER_COLORS[lead];
-  const sub = tie ? `${winners.map((w) => w.id).join(' e ')} dividem o 1º lugar` : subtitle(res, sd);
+  const sub = tie ? `${listIds(winners.map((w) => w.id))} dividem o 1º lugar` : subtitle(res, sd);
   const head = h('div', 'result-head', '',
     portrait(lead === 'P1' && !tie ? 'P1win' : lead, 'result-char', tie ? '' : `${lead} comemorando`),
     h('span', 'result-sub', sub), title);

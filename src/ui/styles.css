@@ -194,3 +194,7 @@ body[data-screen="press-start"] #app canvas { filter: blur(4px) brightness(0.35)
 .opt-saved { font-size: 13px; color: var(--muted); }
 .opt-back { display: flex; align-items: center; gap: 24px; }
 .opt-back .btn-accent { border-radius: 12px; height: 52px; padding: 0 32px; font-size: 18px; }
+
+/* aviso de som bloqueado: só enquanto o AudioContext não estiver rodando (body[data-audio="locked"]) */
+.audio-hint { display: none; position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); margin: 0; font-size: 13px; color: var(--muted); white-space: nowrap; }
+body[data-audio="locked"] .audio-hint { display: block; }

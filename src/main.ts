@@ -29,7 +29,7 @@ import { loadLibrary } from './audio/library';
 import { Mixer } from './audio/mixer';
 
 const params = new URLSearchParams(location.search);
-const showcase = params.get('showcase');
+const showcase = import.meta.env.DEV ? params.get('showcase') : null; // vitrine só em desenvolvimento
 
 const RESULTS_DELAY = 1.2; // s entre o último RESET e a tela de resultados
 const MODIFIER_CODES = new Set(['ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight', 'CapsLock']);
@@ -40,7 +40,8 @@ async function loadBank(): Promise<{ bank: Question[]; error: string | null }> {
     const raw: unknown = import.meta.env.DEV && params.get('bank') === 'empty'
       ? { version: 1, questions: [] }
       : (await import('./data/questions.json')).default;
-    const bank = validateBank(raw).questions;
+    const { questions: bank, rejected } = validateBank(raw);
+    for (const r of rejected) console.warn(`[perguntas] rejeitada #${r.index}: ${r.reason}`);
     if (bank.length === 0) return { bank, error: 'O banco de perguntas está vazio ou inválido. Não há com o que jogar.' };
     return { bank, error: null };
   } catch {
@@ -86,23 +87,31 @@ async function runGame(): Promise<void> {
     mixer?.setSettings(next);
     saveAudioSettings(storage, next);
   }
+  let audioFailed = false; // new AudioContext() lançou: não tenta de novo a cada tecla
+  function syncAudioHint(): void {
+    document.body.dataset.audio = audioFailed || actx?.state === 'running' ? 'on' : 'locked';
+  }
   function wakeAudio(): void {
-    if (!actx) {
+    if (!actx && !audioFailed) {
       try {
         const ctx = new AudioContext();
         actx = ctx;
+        ctx.addEventListener('statechange', syncAudioHint);
         void loadLibrary(ctx).then((lib) => {
           const m = new Mixer(ctx, lib);
           m.setSettings(audioSettings);
           mixer = m;
-        });
+        }).catch((err: unknown) => { console.warn('[audio] falha ao carregar os sons', err); });
       } catch (err) {
+        audioFailed = true;
         console.warn('[audio] indisponível', err);
       }
     }
-    if (actx && actx.state === 'suspended') void actx.resume().catch(() => undefined);
+    if (actx && actx.state === 'suspended') void actx.resume().then(syncAudioHint, () => undefined);
+    syncAudioHint();
   }
   for (const type of ['keydown', 'pointerdown'] as const) window.addEventListener(type, wakeAudio, { capture: true });
+  syncAudioHint();
 
   let overTimer = -1; // contagem até a tela de resultados (<0 = inativa)
   let activeDevices: DeviceSlots | null = null; // jogadores da partida em andamento
@@ -288,8 +297,21 @@ async function runGame(): Promise<void> {
   }
 }
 
+/** Falha na partida de largada (ex.: WebGL indisponível): mostra a tela de erro em vez de ficar em branco. */
+function showStartupError(err: unknown): void {
+  console.error('[start]', err);
+  const app = document.querySelector<HTMLDivElement>('#app');
+  const ui = document.createElement('div');
+  ui.id = 'ui';
+  app?.replaceChildren(ui);
+  const screen = createError(createNav());
+  ui.append(screen.el);
+  document.body.dataset.screen = 'error';
+  screen.show('Não foi possível iniciar o jogo (WebGL indisponível?).');
+}
+
 if (showcase) {
   void import('./showcase').then((m) => m.runShowcase(showcase, params));
 } else {
-  void runGame();
+  runGame().catch(showStartupError);
 }

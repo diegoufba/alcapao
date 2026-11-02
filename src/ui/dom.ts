@@ -18,11 +18,14 @@ export function button(cls: string, text: string, onClick: () => void): HTMLButt
 
 export function portrait(file: string, cls = '', alt = ''): HTMLImageElement {
   const i = h('img', cls);
-  i.src = `/img/${file}.png`;
+  i.src = `${import.meta.env.BASE_URL}img/${file}.png`;
   i.alt = alt;
   if (!alt) i.setAttribute('aria-hidden', 'true');
   return i;
 }
+
+/** Aviso nas telas iniciais enquanto o áudio não foi liberado (gamepad não conta como ativação do navegador). */
+export const AUDIO_HINT = 'Clique ou aperte uma tecla para ativar o som';
 
 export const fmt = (n: number): string => n.toLocaleString('pt-BR');
 

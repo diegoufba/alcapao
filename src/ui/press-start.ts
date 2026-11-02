@@ -1,4 +1,4 @@
-import { h, portrait, stage, type ScreenCtl } from './dom';
+import { AUDIO_HINT, h, portrait, stage, type ScreenCtl } from './dom';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -36,6 +36,6 @@ export function createPressStart(): ScreenCtl {
     h('h1', 'ps-logo', 'ALÇAPÃO'),
     h('div', 'ps-cta', 'APERTE QUALQUER TECLA OU BOTÃO'),
     legend);
-  st.append(h('span', 'ps-version', 'v0.1 · protótipo'));
+  st.append(h('span', 'ps-version', 'v0.1 · protótipo'), h('p', 'audio-hint', AUDIO_HINT));
   return { el, show() { el.hidden = false; }, hide() { el.hidden = true; } };
 }

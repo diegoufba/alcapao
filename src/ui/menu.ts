@@ -1,4 +1,4 @@
-import { button, fmt, h, portrait, stage, type ScreenCtl } from './dom';
+import { AUDIO_HINT, button, fmt, h, portrait, stage, type ScreenCtl } from './dom';
 import type { Nav } from './nav';
 import { getRecord, type RecordKey } from '../records';
 import type { StorageLike } from '../storage';
@@ -64,7 +64,8 @@ export function createMenu({ nav, storage, onPlay, onOptions }: MenuDeps): Scree
       h('h1', 'logo', 'ALÇAPÃO'),
       h('p', 'tagline', 'Quiz de sobrevivência para 1 a 4 jogadores')),
     h('nav', 'menu-list', '', play, how, opts, recs),
-    h('p', 'hint', 'Enter / Start para escolher · Setas ou analógico para navegar'));
+    h('p', 'hint', 'Enter / Start para escolher · Setas ou analógico para navegar'),
+    h('p', 'audio-hint', AUDIO_HINT));
   (st.querySelector('nav') as HTMLElement).setAttribute('aria-label', 'Menu principal');
   el.append(howPanel, recordsPanel);
 

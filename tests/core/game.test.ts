@@ -282,3 +282,32 @@ describe('geral', () => {
     expect(JSON.stringify(g.state)).toBe(snapshot);
   });
 });
+
+describe('respawn e temas', () => {
+  test('Pontos: quem caiu já está no SPAWN no primeiro passo do RESET', () => {
+    const g = createGame({ mode: 'points', rounds: 8, players: ['P1', 'P2'], seed: 2 }, bank());
+    const wrong = (x: Game): Partial<Record<PlayerId, PlayerInput>> => {
+      const q = x.state.question;
+      if (!q) return {};
+      const bad = q.correct === 'A' ? 'B' : 'A';
+      return { P1: steer(x, 'P1', PLATFORM_CENTERS[q.correct]), P2: steer(x, 'P2', PLATFORM_CENTERS[bad]) };
+    };
+    runUntil(g, inPhase('reveal'), wrong);
+    expect(g.state.players[1].pos).not.toEqual(SPAWNS.P2); // caiu longe do slot
+    runUntil(g, inPhase('reset'), wrong);
+    const p2 = g.state.players[1];
+    expect(p2.fallen).toBe(true);
+    expect(p2.pos).toEqual(SPAWNS.P2);
+    expect(p2.vel).toEqual({ x: 0, z: 0 });
+    expect(p2.frozen).toBe(0);
+  });
+
+  test('availableThemes lista só temas com perguntas restantes', () => {
+    const one = (t: string): Question => ({ id: t, theme: t, difficulty: 1, text: t, options: ['a', 'b', 'c', 'd'], correct: 0 });
+    const g = createGame({ mode: 'survival', players: ['P1'], seed: 1 }, [one('X'), one('Y')]);
+    expect(g.availableThemes().sort()).toEqual(['X', 'Y']);
+    const ev = runUntil(g, inPhase('question'));
+    const used = ofType(ev, 'themeChosen')[0].theme;
+    expect(g.availableThemes()).toEqual([used === 'X' ? 'Y' : 'X']);
+  });
+});

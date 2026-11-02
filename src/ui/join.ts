@@ -2,6 +2,7 @@ import { button, h, portrait, stage, type ScreenCtl } from './dom';
 import { emitUi, KEY_DIRS, type Dir, type PadEvent } from './nav';
 import { DeviceSlots } from '../input/devices';
 import { applyPadChanges, pruneDisconnected } from '../input/connection';
+import { padLeaveAction } from './join-logic';
 import { KEY_GROUPS, type DeviceId, type KeyboardInput } from '../input/keyboard';
 import type { GameConfig } from '../core/game';
 import type { PlayerId } from '../core/types';
@@ -110,12 +111,15 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
     return true;
   }
 
-  function removeLast(): void {
-    const ps = devices.players();
-    if (ps.length === 0) return;
-    devices.leave(ps[ps.length - 1]);
+  function removePlayer(p: PlayerId): void {
+    devices.leave(p);
     emitUi('saiu');
     render();
+  }
+
+  function removeLast(): void {
+    const ps = devices.players();
+    if (ps.length > 0) removePlayer(ps[ps.length - 1]);
   }
 
   function tryStart(): void {
@@ -179,9 +183,11 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
       for (const e of events) {
         const d: DeviceId = `gp-${e.pad}`;
         if (fresh.has(d)) continue; // o botão que fez o pad entrar não conta como comando
-        if (e.kind === 'back') { emitUi('voltar'); onBack(); return; }
-        if (e.kind === 'select') removeLast();
-        else if (d === p1 && e.kind === 'start') { tryStart(); return; }
+        if (e.kind === 'back' || e.kind === 'select') {
+          const a = padLeaveAction(devices, d, e.kind);
+          if (a.type === 'menu') { emitUi('voltar'); onBack(); return; }
+          if (a.type === 'leave') removePlayer(a.player);
+        } else if (d === p1 && e.kind === 'start') { tryStart(); return; }
         else if (d === p1 && (e.kind === 'up' || e.kind === 'down' || e.kind === 'left' || e.kind === 'right')) p1Dir(e.kind);
       }
     },

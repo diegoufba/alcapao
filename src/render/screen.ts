@@ -1,12 +1,9 @@
 import * as THREE from 'three';
-import type { Mode, PlayerId, ShownQuestion, Zone } from '../core/types';
+import type { ShownQuestion, Zone } from '../core/types';
+import { headerText, roundLabel, type ScreenView } from './screen-view';
 import { ACCENT, PLAYER_COLORS, flatMaterial } from './scene';
 
-export type ScreenView =
-  | { kind: 'spin'; themes: string[]; highlighted: string; round: number; totalRounds: number | null }
-  | { kind: 'question'; q: ShownQuestion; timeLeft: number; round: number; totalRounds: number | null; mode: Mode }
-  | { kind: 'reveal'; q: ShownQuestion; round: number; totalRounds: number | null; mode: Mode }
-  | { kind: 'suddenDeath'; players: PlayerId[] };
+export type { ScreenView };
 
 const W = 1600;
 const H = 600;
@@ -26,17 +23,6 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): st
   }
   if (line) lines.push(line);
   return lines;
-}
-
-function roundLabel(round: number, totalRounds: number | null): string {
-  return totalRounds === null ? `Rodada ${round}` : `Rodada ${round}/${totalRounds}`;
-}
-
-// Texto do cabeçalho depois do tema (Sobrevivência: dificuldade; Pontos: valor).
-function headerText(q: ShownQuestion, round: number, totalRounds: number | null, mode: Mode): string {
-  return mode === 'points'
-    ? `${roundLabel(round, totalRounds)} · Vale ${q.value} pts`
-    : `${roundLabel(round, totalRounds)} · Dificuldade ${q.difficulty}`;
 }
 
 function drawHeader(ctx: CanvasRenderingContext2D, chip: string, label: string): void {
@@ -78,7 +64,7 @@ function drawView(ctx: CanvasRenderingContext2D, view: ScreenView): void {
 
   if (view.kind === 'question' || view.kind === 'reveal') {
     const { q } = view;
-    drawHeader(ctx, q.theme, headerText(q, view.round, view.totalRounds, view.mode));
+    drawHeader(ctx, q.theme, headerText(q, view.round, view.totalRounds, view.mode, view.suddenDeath));
     if (view.kind === 'reveal') {
       ctx.fillStyle = ACCENT; ctx.font = '44px Bungee'; ctx.textAlign = 'right';
       ctx.fillText(`RESPOSTA: ${q.correct}`, W - 50, 82);

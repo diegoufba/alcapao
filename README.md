@@ -4,7 +4,7 @@ Jogo de perguntas e respostas para até 4 pessoas na mesma tela, no navegador. A
 
 ## Requisitos
 
-Node 20 ou mais novo e um navegador moderno.
+Node 22.12 ou mais novo e um navegador moderno.
 
 ## Como rodar
 

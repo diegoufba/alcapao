@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
 import { createArena } from './render/arena';
-import { createScreen, type ScreenView } from './render/screen';
+import { createScreen } from './render/screen';
+import { screenViewFor } from './render/screen-view';
 import { createDebug } from './render/debug';
 import { createCharacter } from './render/character';
 import { createEffects } from './render/effects';
@@ -12,11 +13,8 @@ import type { GamepadInput } from './input/gamepad';
 import type { KeyboardInput } from './input/keyboard';
 import type { GameEvent, GameState, Mode, PlayerId, PlayerInput, Question, RankEntry, Zone } from './core/types';
 
-const THEMES = ['Geografia', 'História', 'Ciências', 'Esportes', 'Entretenimento', 'Tecnologia'];
 const PLAYER_IDS: PlayerId[] = ['P1', 'P2', 'P3', 'P4'];
 const PUSH_POSE_TIME = 0.3;
-const SPIN_SETTLE = 0.6;
-const SPIN_TICK = 12; // trocas de tema por segundo durante a roleta
 
 export interface MatchResult {
   mode: Mode;
@@ -56,22 +54,6 @@ export interface MatchController {
   drainEvents(): GameEvent[];
 }
 
-function screenView(state: GameState, clock: number): ScreenView | null {
-  const { phase } = state;
-  if (phase === 'spin') {
-    if (state.suddenDeath) return { kind: 'suddenDeath', players: state.suddenDeath };
-    const settled = state.theme !== null && state.phaseTime <= SPIN_SETTLE;
-    const highlighted = settled ? (state.theme as string) : THEMES[Math.floor(clock * SPIN_TICK) % THEMES.length];
-    return { kind: 'spin', themes: THEMES, highlighted, round: state.round, totalRounds: state.totalRounds };
-  }
-  const q = state.question;
-  if (!q) return null;
-  if (phase === 'question') return { kind: 'question', q, timeLeft: state.phaseTime, round: state.round, totalRounds: state.totalRounds, mode: state.mode };
-  if (phase === 'lock') return { kind: 'question', q, timeLeft: 0, round: state.round, totalRounds: state.totalRounds, mode: state.mode };
-  if (phase === 'reveal' || phase === 'reset') return { kind: 'reveal', q, round: state.round, totalRounds: state.totalRounds, mode: state.mode };
-  return null;
-}
-
 export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad }: MatchDeps): MatchController {
   const pending: GameEvent[] = [];
   const arena = createArena(scene);
@@ -104,7 +86,7 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
 
   function handleEvents(state: GameState, events: GameEvent[]): void {
     for (const e of events) {
-      if (e.type === 'phaseChanged' && e.phase === 'spin') { arena.reset(); respawning.clear(); }
+      if (e.type === 'phaseChanged' && e.phase === 'spin') { arena.reset(); respawning.clear(); prev.clear(); } // fim do RESET: todos voltam ao slot
       else if (e.type === 'locked') lastZones = e.zones;
       else if (e.type === 'pushed') {
         pushUntil.set(e.by, clock + PUSH_POSE_TIME);
@@ -120,12 +102,12 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
         cheering.clear();
         if (!e.voided) {
           for (const p of state.players) {
-            const ok = state.mode === 'points' ? (e.scored[p.id] ?? 0) > 0 : p.inPlay && !e.fallen.includes(p.id);
+            const ok = state.mode === 'points' && !state.suddenDeath ? (e.scored[p.id] ?? 0) > 0 : p.inPlay && !e.fallen.includes(p.id);
             if (ok) cheering.add(p.id);
           }
         }
       } else if (e.type === 'respawned') {
-        for (const id of e.players) { respawning.add(id); chars[id].playRespawnDrop(); }
+        for (const id of e.players) { respawning.add(id); chars[id].playRespawnDrop(); prev.delete(id); } // posição saltou: sem interpolar
       } else if (e.type === 'gameOver') {
         const rounds = state.totalRounds ?? undefined;
         result = { mode: state.mode, rounds, players: state.players.length, ranking: e.ranking, roundsSurvived: e.roundsSurvived, scores: e.scores };
@@ -201,7 +183,7 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
       handleEvents(state, events);
       pending.push(...events);
       syncCharacters(state, alpha, dt);
-      const view = screenView(state, clock);
+      const view = screenViewFor(state, clock, game.availableThemes());
       if (view) screen.draw(view);
       hud.update(state, devices, events);
       if (debugOn) debug.update(state);

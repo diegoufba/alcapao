@@ -38,7 +38,7 @@ const fmt = (n: number): string => n.toLocaleString('pt-BR');
 
 /** Texto, cor e esmaecimento do status (§5 / mockup). */
 function statusOf(
-  p: PlayerState, state: GameState, eliminatedAt: Map<PlayerId, number>, gain: Map<PlayerId, number>, offline: boolean,
+  p: PlayerState, state: GameState, eliminatedAt: Map<PlayerId, number>, gain: Map<PlayerId, number>, offline: boolean, voided: boolean,
 ): { text: string; color: string; dim: boolean } {
   const survival = state.mode === 'survival';
   const rev = state.phase === 'reveal';
@@ -47,7 +47,10 @@ function statusOf(
   }
   if (offline) return { text: 'Controle desconectado', color: RED, dim: false };
   if (survival) {
-    if (rev) return p.fallen ? { text: 'Caiu!', color: RED, dim: true } : { text: 'Acertou', color: GREEN, dim: false };
+    if (rev) {
+      if (voided) return { text: 'Anulada', color: TEXT, dim: false };
+      return p.fallen ? { text: 'Caiu!', color: RED, dim: true } : { text: 'Acertou', color: GREEN, dim: false };
+    }
     if (state.phase === 'question' || state.phase === 'lock') {
       const z = zoneOf(p.pos);
       return { text: z ? `Em ${z}` : 'Na faixa', color: TEXT, dim: false };
@@ -69,6 +72,7 @@ export function createHud(root: HTMLElement): {
   const cards = new Map<PlayerId, Card>();
   const eliminatedAt = new Map<PlayerId, number>();
   const gain = new Map<PlayerId, number>();
+  let voided = false;
 
   function build(p: PlayerState, label: string): Card {
     const card = el('div', 'hud-card');
@@ -91,6 +95,7 @@ export function createHud(root: HTMLElement): {
     update(state, devices, events) {
       for (const e of events) {
         if (e.type !== 'revealed') continue;
+        voided = e.voided;
         if (state.mode === 'survival') for (const id of e.fallen) eliminatedAt.set(id, state.round);
         gain.clear();
         for (const [id, pts] of Object.entries(e.scored) as [PlayerId, number][]) if (pts > 0) gain.set(id, pts);
@@ -101,7 +106,7 @@ export function createHud(root: HTMLElement): {
           c = build(p, deviceLabel(devices.deviceOf(p.id)));
           cards.set(p.id, c);
         }
-        const st = statusOf(p, state, eliminatedAt, gain, !devices.isConnected(p.id));
+        const st = statusOf(p, state, eliminatedAt, gain, !devices.isConnected(p.id), voided);
         if (st.text !== c.last.status) { c.status.textContent = st.text; c.last.status = st.text; }
         if (st.color !== c.last.color) { c.status.style.color = st.color; c.last.color = st.color; }
         if (st.dim !== c.last.dim) { c.el.classList.toggle('is-dim', st.dim); c.last.dim = st.dim; }
