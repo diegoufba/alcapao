@@ -160,7 +160,7 @@ export function createScreen(scene: THREE.Scene): { draw(view: ScreenView): void
     pole.position.set(7.6 * s, -5, -0.2); tel.add(pole);
   }
   tel.position.set(0, 5.4, -8.2); tel.rotation.x = 0.18;
-  tel.traverse(o => { if (o instanceof THREE.Mesh && o !== face) { o.castShadow = true; o.receiveShadow = true; } });
+  tel.traverse(o => { if (o instanceof THREE.Mesh && o !== face) { o.receiveShadow = true; } });
   scene.add(tel);
 
   return { draw };
