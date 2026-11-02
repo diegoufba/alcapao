@@ -1,0 +1,1565 @@
+{
+  "version": 1,
+  "questions": [
+    {
+      "id": "geo-001",
+      "theme": "Geografia",
+      "difficulty": 2,
+      "text": "Qual é o maior estado do Brasil em área?",
+      "options": [
+        "Pará",
+        "Amazonas",
+        "Mato Grosso",
+        "Bahia"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "geo-002",
+      "theme": "Geografia",
+      "difficulty": 1,
+      "text": "Qual é a capital do Brasil?",
+      "options": [
+        "Brasília",
+        "Rio de Janeiro",
+        "São Paulo",
+        "Salvador"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "geo-003",
+      "theme": "Geografia",
+      "difficulty": 1,
+      "text": "Qual é o maior oceano do mundo?",
+      "options": [
+        "Atlântico",
+        "Índico",
+        "Pacífico",
+        "Ártico"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "geo-004",
+      "theme": "Geografia",
+      "difficulty": 1,
+      "text": "Qual é a capital da Argentina?",
+      "options": [
+        "Montevidéu",
+        "Santiago",
+        "Lima",
+        "Buenos Aires"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "geo-005",
+      "theme": "Geografia",
+      "difficulty": 1,
+      "text": "Qual é o maior país da América do Sul em área?",
+      "options": [
+        "Brasil",
+        "Argentina",
+        "Peru",
+        "Colômbia"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "geo-006",
+      "theme": "Geografia",
+      "difficulty": 1,
+      "text": "Em que estado brasileiro fica a cidade de Salvador?",
+      "options": [
+        "Pernambuco",
+        "Bahia",
+        "Sergipe",
+        "Alagoas"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "geo-007",
+      "theme": "Geografia",
+      "difficulty": 1,
+      "text": "Qual é a capital da França?",
+      "options": [
+        "Lyon",
+        "Marselha",
+        "Paris",
+        "Nice"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "geo-008",
+      "theme": "Geografia",
+      "difficulty": 1,
+      "text": "Qual é o maior país do mundo em área?",
+      "options": [
+        "Canadá",
+        "China",
+        "Estados Unidos",
+        "Rússia"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "geo-009",
+      "theme": "Geografia",
+      "difficulty": 1,
+      "text": "Qual país tem o formato de uma bota no mapa?",
+      "options": [
+        "Itália",
+        "Grécia",
+        "Espanha",
+        "Portugal"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "geo-010",
+      "theme": "Geografia",
+      "difficulty": 2,
+      "text": "Qual é a capital da Austrália?",
+      "options": [
+        "Sydney",
+        "Camberra",
+        "Melbourne",
+        "Perth"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "geo-011",
+      "theme": "Geografia",
+      "difficulty": 2,
+      "text": "Qual estado brasileiro faz fronteira com o Uruguai?",
+      "options": [
+        "Santa Catarina",
+        "Paraná",
+        "Rio Grande do Sul",
+        "Mato Grosso do Sul"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "geo-012",
+      "theme": "Geografia",
+      "difficulty": 2,
+      "text": "Qual é a capital do Canadá?",
+      "options": [
+        "Toronto",
+        "Vancouver",
+        "Montreal",
+        "Ottawa"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "geo-013",
+      "theme": "Geografia",
+      "difficulty": 2,
+      "text": "Qual é a montanha mais alta do mundo acima do nível do mar?",
+      "options": [
+        "Monte Everest",
+        "K2",
+        "Aconcágua",
+        "Kilimanjaro"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "geo-014",
+      "theme": "Geografia",
+      "difficulty": 2,
+      "text": "Qual é a capital do Tocantins?",
+      "options": [
+        "Araguaína",
+        "Palmas",
+        "Gurupi",
+        "Porto Nacional"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "geo-015",
+      "theme": "Geografia",
+      "difficulty": 2,
+      "text": "Qual é o menor país do mundo em área?",
+      "options": [
+        "Mônaco",
+        "San Marino",
+        "Vaticano",
+        "Liechtenstein"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "geo-016",
+      "theme": "Geografia",
+      "difficulty": 3,
+      "text": "Qual é o ponto mais alto do Brasil?",
+      "options": [
+        "Pico da Bandeira",
+        "Monte Roraima",
+        "Pico 31 de Março",
+        "Pico da Neblina"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "geo-017",
+      "theme": "Geografia",
+      "difficulty": 3,
+      "text": "Qual é a capital da Mongólia?",
+      "options": [
+        "Ulan Bator",
+        "Tashkent",
+        "Cabul",
+        "Katmandu"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "geo-018",
+      "theme": "Geografia",
+      "difficulty": 3,
+      "text": "A qual estado pertence o arquipélago de Fernando de Noronha?",
+      "options": [
+        "Rio Grande do Norte",
+        "Pernambuco",
+        "Paraíba",
+        "Ceará"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "geo-019",
+      "theme": "Geografia",
+      "difficulty": 3,
+      "text": "Qual destes países sul-americanos não tem litoral?",
+      "options": [
+        "Equador",
+        "Uruguai",
+        "Paraguai",
+        "Venezuela"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "geo-020",
+      "theme": "Geografia",
+      "difficulty": 3,
+      "text": "Qual estreito separa a Europa da África?",
+      "options": [
+        "Bósforo",
+        "Magalhães",
+        "Ormuz",
+        "Gibraltar"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "his-001",
+      "theme": "História",
+      "difficulty": 1,
+      "text": "Em que ano a esquadra de Cabral chegou ao Brasil?",
+      "options": [
+        "1500",
+        "1492",
+        "1530",
+        "1822"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "his-002",
+      "theme": "História",
+      "difficulty": 1,
+      "text": "Quem proclamou a Independência do Brasil?",
+      "options": [
+        "Dom Pedro II",
+        "Dom Pedro I",
+        "Tiradentes",
+        "Deodoro da Fonseca"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "his-003",
+      "theme": "História",
+      "difficulty": 1,
+      "text": "Em que ano foi proclamada a Independência do Brasil?",
+      "options": [
+        "1889",
+        "1808",
+        "1822",
+        "1500"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "his-004",
+      "theme": "História",
+      "difficulty": 1,
+      "text": "Qual lei aboliu a escravidão no Brasil em 1888?",
+      "options": [
+        "Lei do Ventre Livre",
+        "Lei Eusébio de Queirós",
+        "Lei dos Sexagenários",
+        "Lei Áurea"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "his-005",
+      "theme": "História",
+      "difficulty": 1,
+      "text": "Quem foi o primeiro homem a pisar na Lua?",
+      "options": [
+        "Neil Armstrong",
+        "Buzz Aldrin",
+        "Yuri Gagarin",
+        "Michael Collins"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "his-006",
+      "theme": "História",
+      "difficulty": 1,
+      "text": "Quem comandou a viagem que chegou à América em 1492?",
+      "options": [
+        "Vasco da Gama",
+        "Cristóvão Colombo",
+        "Pedro Álvares Cabral",
+        "Fernão de Magalhães"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "his-007",
+      "theme": "História",
+      "difficulty": 1,
+      "text": "Qual muro famoso caiu em 1989?",
+      "options": [
+        "Muro de Adriano",
+        "Muro das Lamentações",
+        "Muro de Berlim",
+        "Muralha da China"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "his-008",
+      "theme": "História",
+      "difficulty": 1,
+      "text": "Qual povo antigo construiu as pirâmides de Gizé?",
+      "options": [
+        "Maias",
+        "Romanos",
+        "Persas",
+        "Egípcios"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "his-009",
+      "theme": "História",
+      "difficulty": 2,
+      "text": "Quem foi o primeiro presidente do Brasil?",
+      "options": [
+        "Deodoro da Fonseca",
+        "Floriano Peixoto",
+        "Getúlio Vargas",
+        "Prudente de Morais"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "his-010",
+      "theme": "História",
+      "difficulty": 2,
+      "text": "Em que ano foi proclamada a República no Brasil?",
+      "options": [
+        "1822",
+        "1889",
+        "1888",
+        "1891"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "his-011",
+      "theme": "História",
+      "difficulty": 2,
+      "text": "Qual era o apelido de Joaquim José da Silva Xavier?",
+      "options": [
+        "Aleijadinho",
+        "Chalaça",
+        "Tiradentes",
+        "Zumbi"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "his-012",
+      "theme": "História",
+      "difficulty": 2,
+      "text": "Em que ano começou a Segunda Guerra Mundial?",
+      "options": [
+        "1914",
+        "1941",
+        "1945",
+        "1939"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "his-013",
+      "theme": "História",
+      "difficulty": 2,
+      "text": "Em que ano a família real portuguesa chegou ao Brasil?",
+      "options": [
+        "1808",
+        "1792",
+        "1822",
+        "1815"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "his-014",
+      "theme": "História",
+      "difficulty": 2,
+      "text": "Qual presidente inaugurou Brasília em 1960?",
+      "options": [
+        "Getúlio Vargas",
+        "Juscelino Kubitschek",
+        "Jânio Quadros",
+        "João Goulart"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "his-015",
+      "theme": "História",
+      "difficulty": 2,
+      "text": "Qual líder quilombola é lembrado no Dia da Consciência Negra?",
+      "options": [
+        "Ganga Zumba",
+        "João Cândido",
+        "Zumbi dos Palmares",
+        "Luiz Gama"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "his-016",
+      "theme": "História",
+      "difficulty": 3,
+      "text": "Em que ano Constantinopla foi tomada pelos otomanos?",
+      "options": [
+        "1492",
+        "1204",
+        "1517",
+        "1453"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "his-017",
+      "theme": "História",
+      "difficulty": 3,
+      "text": "Qual tratado de 1494 dividiu terras entre Portugal e Espanha?",
+      "options": [
+        "Tordesilhas",
+        "Madri",
+        "Versalhes",
+        "Utrecht"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "his-018",
+      "theme": "História",
+      "difficulty": 3,
+      "text": "Quem foi o primeiro imperador de Roma?",
+      "options": [
+        "Júlio César",
+        "Augusto",
+        "Nero",
+        "Calígula"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "his-019",
+      "theme": "História",
+      "difficulty": 3,
+      "text": "Qual revolta baiana de 1798 é também chamada de Revolta dos Alfaiates?",
+      "options": [
+        "Sabinada",
+        "Balaiada",
+        "Conjuração Baiana",
+        "Cabanagem"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "his-020",
+      "theme": "História",
+      "difficulty": 3,
+      "text": "Qual navegador português chegou à Índia por mar em 1498?",
+      "options": [
+        "Bartolomeu Dias",
+        "Pedro Álvares Cabral",
+        "Fernão de Magalhães",
+        "Vasco da Gama"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "cie-001",
+      "theme": "Ciências",
+      "difficulty": 1,
+      "text": "Qual é a fórmula química da água?",
+      "options": [
+        "H2O",
+        "CO2",
+        "O2",
+        "NaCl"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "cie-002",
+      "theme": "Ciências",
+      "difficulty": 1,
+      "text": "Qual planeta é conhecido como Planeta Vermelho?",
+      "options": [
+        "Júpiter",
+        "Marte",
+        "Vênus",
+        "Saturno"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "cie-003",
+      "theme": "Ciências",
+      "difficulty": 1,
+      "text": "Qual é o maior planeta do Sistema Solar?",
+      "options": [
+        "Saturno",
+        "Netuno",
+        "Júpiter",
+        "Terra"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "cie-004",
+      "theme": "Ciências",
+      "difficulty": 1,
+      "text": "Quantas patas tem um inseto?",
+      "options": [
+        "Oito",
+        "Quatro",
+        "Dez",
+        "Seis"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "cie-005",
+      "theme": "Ciências",
+      "difficulty": 1,
+      "text": "Qual gás as plantas absorvem do ar na fotossíntese?",
+      "options": [
+        "Gás carbônico",
+        "Oxigênio",
+        "Nitrogênio",
+        "Hélio"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "cie-006",
+      "theme": "Ciências",
+      "difficulty": 1,
+      "text": "Qual é o maior órgão do corpo humano?",
+      "options": [
+        "Fígado",
+        "Pele",
+        "Pulmão",
+        "Intestino"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "cie-007",
+      "theme": "Ciências",
+      "difficulty": 1,
+      "text": "A que temperatura a água pura ferve ao nível do mar?",
+      "options": [
+        "90 °C",
+        "80 °C",
+        "100 °C",
+        "120 °C"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "cie-008",
+      "theme": "Ciências",
+      "difficulty": 1,
+      "text": "Qual é o maior mamífero do mundo?",
+      "options": [
+        "Elefante-africano",
+        "Girafa",
+        "Orca",
+        "Baleia-azul"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "cie-009",
+      "theme": "Ciências",
+      "difficulty": 2,
+      "text": "Qual é o símbolo químico do ouro?",
+      "options": [
+        "Au",
+        "Ag",
+        "Or",
+        "Go"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "cie-010",
+      "theme": "Ciências",
+      "difficulty": 2,
+      "text": "Quantos ossos tem o corpo humano adulto?",
+      "options": [
+        "186",
+        "206",
+        "212",
+        "230"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "cie-011",
+      "theme": "Ciências",
+      "difficulty": 2,
+      "text": "Qual cientista formulou a teoria da relatividade?",
+      "options": [
+        "Isaac Newton",
+        "Galileu Galilei",
+        "Albert Einstein",
+        "Nikola Tesla"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "cie-012",
+      "theme": "Ciências",
+      "difficulty": 2,
+      "text": "Qual planeta fica mais perto do Sol?",
+      "options": [
+        "Vênus",
+        "Marte",
+        "Terra",
+        "Mercúrio"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "cie-013",
+      "theme": "Ciências",
+      "difficulty": 2,
+      "text": "Qual é o gás mais abundante na atmosfera da Terra?",
+      "options": [
+        "Nitrogênio",
+        "Oxigênio",
+        "Gás carbônico",
+        "Argônio"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "cie-014",
+      "theme": "Ciências",
+      "difficulty": 2,
+      "text": "Qual tipo sanguíneo é chamado de doador universal?",
+      "options": [
+        "AB positivo",
+        "O negativo",
+        "A negativo",
+        "B positivo"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "cie-015",
+      "theme": "Ciências",
+      "difficulty": 2,
+      "text": "Qual organela produz a maior parte da energia da célula?",
+      "options": [
+        "Ribossomo",
+        "Núcleo",
+        "Mitocôndria",
+        "Complexo de Golgi"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "cie-016",
+      "theme": "Ciências",
+      "difficulty": 3,
+      "text": "Qual é o símbolo químico do sódio?",
+      "options": [
+        "S",
+        "So",
+        "Sn",
+        "Na"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "cie-017",
+      "theme": "Ciências",
+      "difficulty": 3,
+      "text": "Qual é a velocidade aproximada da luz no vácuo?",
+      "options": [
+        "300 mil km/s",
+        "300 mil km/h",
+        "30 mil km/s",
+        "3 mil km/s"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "cie-018",
+      "theme": "Ciências",
+      "difficulty": 3,
+      "text": "Qual é o número atômico do carbono?",
+      "options": [
+        "12",
+        "6",
+        "8",
+        "14"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "cie-019",
+      "theme": "Ciências",
+      "difficulty": 3,
+      "text": "Qual inseto transmite a doença de Chagas?",
+      "options": [
+        "Aedes aegypti",
+        "Mosquito-palha",
+        "Barbeiro",
+        "Pulga"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "cie-020",
+      "theme": "Ciências",
+      "difficulty": 3,
+      "text": "Qual destes metais é líquido à temperatura ambiente?",
+      "options": [
+        "Chumbo",
+        "Estanho",
+        "Alumínio",
+        "Mercúrio"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "esp-001",
+      "theme": "Esportes",
+      "difficulty": 1,
+      "text": "Quantos jogadores cada time tem em campo numa partida de futebol?",
+      "options": [
+        "11",
+        "10",
+        "12",
+        "9"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "esp-002",
+      "theme": "Esportes",
+      "difficulty": 1,
+      "text": "Em que categoria Ayrton Senna foi campeão mundial?",
+      "options": [
+        "Stock Car",
+        "Fórmula 1",
+        "Fórmula Indy",
+        "Rali"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "esp-003",
+      "theme": "Esportes",
+      "difficulty": 1,
+      "text": "Qual jogador brasileiro é conhecido como Rei do Futebol?",
+      "options": [
+        "Garrincha",
+        "Zico",
+        "Pelé",
+        "Romário"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "esp-004",
+      "theme": "Esportes",
+      "difficulty": 1,
+      "text": "Qual esporte é jogado com raquete e peteca?",
+      "options": [
+        "Tênis",
+        "Squash",
+        "Pingue-pongue",
+        "Badminton"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "esp-005",
+      "theme": "Esportes",
+      "difficulty": 1,
+      "text": "Qual esporte é disputado no torneio de Wimbledon?",
+      "options": [
+        "Tênis",
+        "Golfe",
+        "Críquete",
+        "Polo"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "esp-006",
+      "theme": "Esportes",
+      "difficulty": 1,
+      "text": "De quantos em quantos anos acontece a Copa do Mundo de futebol?",
+      "options": [
+        "2 anos",
+        "4 anos",
+        "3 anos",
+        "5 anos"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "esp-007",
+      "theme": "Esportes",
+      "difficulty": 1,
+      "text": "Qual país sediou a Copa do Mundo de 2014?",
+      "options": [
+        "Rússia",
+        "Alemanha",
+        "Brasil",
+        "África do Sul"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "esp-008",
+      "theme": "Esportes",
+      "difficulty": 1,
+      "text": "Em que jogo existe o xeque-mate?",
+      "options": [
+        "Damas",
+        "Gamão",
+        "Pôquer",
+        "Xadrez"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "esp-009",
+      "theme": "Esportes",
+      "difficulty": 2,
+      "text": "Em que ano o Brasil ganhou sua primeira Copa do Mundo?",
+      "options": [
+        "1958",
+        "1962",
+        "1970",
+        "1950"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "esp-010",
+      "theme": "Esportes",
+      "difficulty": 2,
+      "text": "Qual cidade sediou os Jogos Olímpicos de 2016?",
+      "options": [
+        "Londres",
+        "Rio de Janeiro",
+        "Tóquio",
+        "Pequim"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "esp-011",
+      "theme": "Esportes",
+      "difficulty": 2,
+      "text": "Quantos sets é preciso vencer para ganhar um jogo de vôlei de quadra?",
+      "options": [
+        "2 sets",
+        "4 sets",
+        "3 sets",
+        "5 sets"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "esp-012",
+      "theme": "Esportes",
+      "difficulty": 2,
+      "text": "Quantos jogadores cada time tem em quadra no basquete?",
+      "options": [
+        "6",
+        "7",
+        "4",
+        "5"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "esp-013",
+      "theme": "Esportes",
+      "difficulty": 2,
+      "text": "Em que esporte Oscar Schmidt se destacou?",
+      "options": [
+        "Basquete",
+        "Vôlei",
+        "Handebol",
+        "Futsal"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "esp-014",
+      "theme": "Esportes",
+      "difficulty": 2,
+      "text": "Qual seleção venceu o Brasil no Maracanazo de 1950?",
+      "options": [
+        "Argentina",
+        "Uruguai",
+        "Itália",
+        "Suécia"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "esp-015",
+      "theme": "Esportes",
+      "difficulty": 2,
+      "text": "Em que país surgiu o judô?",
+      "options": [
+        "China",
+        "Coreia do Sul",
+        "Japão",
+        "Tailândia"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "esp-016",
+      "theme": "Esportes",
+      "difficulty": 3,
+      "text": "Que cidade sediou os primeiros Jogos Olímpicos modernos, em 1896?",
+      "options": [
+        "Paris",
+        "Londres",
+        "Roma",
+        "Atenas"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "esp-017",
+      "theme": "Esportes",
+      "difficulty": 3,
+      "text": "Qual é a distância oficial de uma maratona?",
+      "options": [
+        "42,195 km",
+        "40 km",
+        "42 km",
+        "45,5 km"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "esp-018",
+      "theme": "Esportes",
+      "difficulty": 3,
+      "text": "Em que ano o Brasil conquistou o tetracampeonato mundial?",
+      "options": [
+        "1998",
+        "1994",
+        "1990",
+        "2002"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "esp-019",
+      "theme": "Esportes",
+      "difficulty": 3,
+      "text": "Em que país foi disputada a primeira Copa do Mundo, em 1930?",
+      "options": [
+        "Itália",
+        "Brasil",
+        "Uruguai",
+        "França"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "esp-020",
+      "theme": "Esportes",
+      "difficulty": 3,
+      "text": "Quantos buracos tem uma volta padrão de golfe?",
+      "options": [
+        "9",
+        "12",
+        "21",
+        "18"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "ent-001",
+      "theme": "Entretenimento",
+      "difficulty": 1,
+      "text": "Qual é o rato mais famoso da Disney?",
+      "options": [
+        "Mickey Mouse",
+        "Jerry",
+        "Speedy Gonzales",
+        "Topo Gigio"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "ent-002",
+      "theme": "Entretenimento",
+      "difficulty": 1,
+      "text": "Qual cantor é conhecido como o Rei do Pop?",
+      "options": [
+        "Elvis Presley",
+        "Michael Jackson",
+        "Prince",
+        "Freddie Mercury"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "ent-003",
+      "theme": "Entretenimento",
+      "difficulty": 1,
+      "text": "Qual personagem de Toy Story diz \"Ao infinito e além!\"?",
+      "options": [
+        "Woody",
+        "Rex",
+        "Buzz Lightyear",
+        "Slinky"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "ent-004",
+      "theme": "Entretenimento",
+      "difficulty": 1,
+      "text": "Qual bruxo de Hogwarts tem uma cicatriz em forma de raio?",
+      "options": [
+        "Rony Weasley",
+        "Draco Malfoy",
+        "Neville Longbottom",
+        "Harry Potter"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "ent-005",
+      "theme": "Entretenimento",
+      "difficulty": 1,
+      "text": "Qual apresentadora ficou conhecida como Rainha dos Baixinhos?",
+      "options": [
+        "Xuxa",
+        "Angélica",
+        "Eliana",
+        "Mara Maravilha"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "ent-006",
+      "theme": "Entretenimento",
+      "difficulty": 1,
+      "text": "Qual ogro verde vive num pântano nos filmes da DreamWorks?",
+      "options": [
+        "Hulk",
+        "Shrek",
+        "Grinch",
+        "Yoda"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "ent-007",
+      "theme": "Entretenimento",
+      "difficulty": 1,
+      "text": "Qual dupla de desenho é formada por um gato e um rato?",
+      "options": [
+        "Pinky e Cérebro",
+        "Pernalonga e Patolino",
+        "Tom e Jerry",
+        "Tico e Teco"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "ent-008",
+      "theme": "Entretenimento",
+      "difficulty": 1,
+      "text": "Qual é a boneca de pano do Sítio do Picapau Amarelo?",
+      "options": [
+        "Narizinho",
+        "Cuca",
+        "Dona Benta",
+        "Emília"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "ent-009",
+      "theme": "Entretenimento",
+      "difficulty": 2,
+      "text": "Em que cidade vive a família Simpson?",
+      "options": [
+        "Springfield",
+        "Shelbyville",
+        "Quahog",
+        "South Park"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "ent-010",
+      "theme": "Entretenimento",
+      "difficulty": 2,
+      "text": "Qual banda britânica gravou \"Hey Jude\"?",
+      "options": [
+        "The Rolling Stones",
+        "The Beatles",
+        "Queen",
+        "The Who"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "ent-011",
+      "theme": "Entretenimento",
+      "difficulty": 2,
+      "text": "Quem escreveu \"O Senhor dos Anéis\"?",
+      "options": [
+        "C.S. Lewis",
+        "George R.R. Martin",
+        "J.R.R. Tolkien",
+        "J.K. Rowling"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "ent-012",
+      "theme": "Entretenimento",
+      "difficulty": 2,
+      "text": "Qual filme de 1997 conta a história de um navio que afunda?",
+      "options": [
+        "Pearl Harbor",
+        "Armageddon",
+        "Poseidon",
+        "Titanic"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "ent-013",
+      "theme": "Entretenimento",
+      "difficulty": 2,
+      "text": "Quem escreveu \"Dom Casmurro\"?",
+      "options": [
+        "Machado de Assis",
+        "José de Alencar",
+        "Jorge Amado",
+        "Graciliano Ramos"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "ent-014",
+      "theme": "Entretenimento",
+      "difficulty": 2,
+      "text": "Quem é conhecido como o Rei do Baião?",
+      "options": [
+        "Dominguinhos",
+        "Luiz Gonzaga",
+        "Jackson do Pandeiro",
+        "Alceu Valença"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "ent-015",
+      "theme": "Entretenimento",
+      "difficulty": 2,
+      "text": "Qual super-herói tem Bruce Wayne como identidade secreta?",
+      "options": [
+        "Superman",
+        "Homem-Aranha",
+        "Batman",
+        "Homem de Ferro"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "ent-016",
+      "theme": "Entretenimento",
+      "difficulty": 3,
+      "text": "Quem escreveu \"Capitães da Areia\", ambientado em Salvador?",
+      "options": [
+        "Graciliano Ramos",
+        "Rachel de Queiroz",
+        "Erico Verissimo",
+        "Jorge Amado"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "ent-017",
+      "theme": "Entretenimento",
+      "difficulty": 3,
+      "text": "Quem dirigiu o filme \"Central do Brasil\" (1998)?",
+      "options": [
+        "Walter Salles",
+        "Fernando Meirelles",
+        "Glauber Rocha",
+        "José Padilha"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "ent-018",
+      "theme": "Entretenimento",
+      "difficulty": 3,
+      "text": "Qual compositor criou \"As Quatro Estações\"?",
+      "options": [
+        "Wolfgang A. Mozart",
+        "Antonio Vivaldi",
+        "Johann S. Bach",
+        "Ludwig van Beethoven"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "ent-019",
+      "theme": "Entretenimento",
+      "difficulty": 3,
+      "text": "Quem pintou o quadro \"Abaporu\"?",
+      "options": [
+        "Anita Malfatti",
+        "Di Cavalcanti",
+        "Tarsila do Amaral",
+        "Candido Portinari"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "ent-020",
+      "theme": "Entretenimento",
+      "difficulty": 3,
+      "text": "Em que ano estreou o primeiro filme de \"Star Wars\"?",
+      "options": [
+        "1980",
+        "1975",
+        "1983",
+        "1977"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "tec-001",
+      "theme": "Tecnologia",
+      "difficulty": 1,
+      "text": "Quem fundou a Microsoft junto com Paul Allen?",
+      "options": [
+        "Bill Gates",
+        "Steve Jobs",
+        "Mark Zuckerberg",
+        "Larry Page"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "tec-002",
+      "theme": "Tecnologia",
+      "difficulty": 1,
+      "text": "Qual empresa criou o iPhone?",
+      "options": [
+        "Samsung",
+        "Apple",
+        "Nokia",
+        "Motorola"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "tec-003",
+      "theme": "Tecnologia",
+      "difficulty": 1,
+      "text": "Qual tecla apaga o caractere à esquerda do cursor?",
+      "options": [
+        "Delete",
+        "Esc",
+        "Backspace",
+        "Tab"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "tec-004",
+      "theme": "Tecnologia",
+      "difficulty": 1,
+      "text": "Qual dispositivo é usado para mover o cursor na tela?",
+      "options": [
+        "Teclado",
+        "Monitor",
+        "Impressora",
+        "Mouse"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "tec-005",
+      "theme": "Tecnologia",
+      "difficulty": 1,
+      "text": "Qual empresa criou o sistema operacional Windows?",
+      "options": [
+        "Microsoft",
+        "Apple",
+        "IBM",
+        "Google"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "tec-006",
+      "theme": "Tecnologia",
+      "difficulty": 1,
+      "text": "Qual rede social foi criada por Mark Zuckerberg e colegas?",
+      "options": [
+        "Twitter",
+        "Facebook",
+        "Instagram",
+        "Orkut"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "tec-007",
+      "theme": "Tecnologia",
+      "difficulty": 1,
+      "text": "Quais algarismos são usados no sistema binário?",
+      "options": [
+        "1 e 2",
+        "0 a 9",
+        "0 e 1",
+        "0 e 9"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "tec-008",
+      "theme": "Tecnologia",
+      "difficulty": 1,
+      "text": "Qual empresa fabrica o console PlayStation?",
+      "options": [
+        "Nintendo",
+        "Microsoft",
+        "Sega",
+        "Sony"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "tec-009",
+      "theme": "Tecnologia",
+      "difficulty": 2,
+      "text": "Quantos bits tem um byte?",
+      "options": [
+        "8",
+        "4",
+        "16",
+        "10"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "tec-010",
+      "theme": "Tecnologia",
+      "difficulty": 2,
+      "text": "Qual componente é considerado o cérebro do computador?",
+      "options": [
+        "Memória RAM",
+        "Processador",
+        "Disco rígido",
+        "Placa de vídeo"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "tec-011",
+      "theme": "Tecnologia",
+      "difficulty": 2,
+      "text": "Qual linguagem de programação tem nome de cobra?",
+      "options": [
+        "Java",
+        "Ruby",
+        "Python",
+        "Rust"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "tec-012",
+      "theme": "Tecnologia",
+      "difficulty": 2,
+      "text": "Quem criou o kernel Linux?",
+      "options": [
+        "Richard Stallman",
+        "Dennis Ritchie",
+        "Bill Gates",
+        "Linus Torvalds"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "tec-013",
+      "theme": "Tecnologia",
+      "difficulty": 2,
+      "text": "Qual empresa lançou o videogame portátil Game Boy?",
+      "options": [
+        "Nintendo",
+        "Sega",
+        "Sony",
+        "Atari"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "tec-014",
+      "theme": "Tecnologia",
+      "difficulty": 2,
+      "text": "Qual rede social do Google fez sucesso no Brasil nos anos 2000?",
+      "options": [
+        "MySpace",
+        "Orkut",
+        "Fotolog",
+        "Friendster"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "tec-015",
+      "theme": "Tecnologia",
+      "difficulty": 2,
+      "text": "Qual personagem é o mascote da Sega?",
+      "options": [
+        "Mario",
+        "Pac-Man",
+        "Sonic",
+        "Crash Bandicoot"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "tec-016",
+      "theme": "Tecnologia",
+      "difficulty": 3,
+      "text": "Quem é considerada a primeira programadora da história?",
+      "options": [
+        "Grace Hopper",
+        "Marie Curie",
+        "Hedy Lamarr",
+        "Ada Lovelace"
+      ],
+      "correct": 3
+    },
+    {
+      "id": "tec-017",
+      "theme": "Tecnologia",
+      "difficulty": 3,
+      "text": "Quem criou a World Wide Web?",
+      "options": [
+        "Tim Berners-Lee",
+        "Vint Cerf",
+        "Alan Turing",
+        "Steve Wozniak"
+      ],
+      "correct": 0
+    },
+    {
+      "id": "tec-018",
+      "theme": "Tecnologia",
+      "difficulty": 3,
+      "text": "Qual cientista dá nome ao teste que avalia se máquinas imitam humanos?",
+      "options": [
+        "John von Neumann",
+        "Alan Turing",
+        "Claude Shannon",
+        "Charles Babbage"
+      ],
+      "correct": 1
+    },
+    {
+      "id": "tec-019",
+      "theme": "Tecnologia",
+      "difficulty": 3,
+      "text": "Em que ano o primeiro iPhone foi lançado?",
+      "options": [
+        "2005",
+        "2008",
+        "2007",
+        "2010"
+      ],
+      "correct": 2
+    },
+    {
+      "id": "tec-020",
+      "theme": "Tecnologia",
+      "difficulty": 3,
+      "text": "Qual linguagem de programação foi criada na PUC-Rio?",
+      "options": [
+        "Ruby",
+        "Perl",
+        "Kotlin",
+        "Lua"
+      ],
+      "correct": 3
+    }
+  ]
+}
