@@ -2,325 +2,242 @@ import '@fontsource/bungee/400.css';
 import '@fontsource/rubik/400.css';
 import '@fontsource/rubik/500.css';
 import '@fontsource/rubik/600.css';
-import { createScene } from './render/scene';
-import { createArena } from './render/arena';
-import { createScreen } from './render/screen';
-import { createDebug } from './render/debug';
-import { createCharacter, type Pose } from './render/character';
-import { createEffects } from './render/effects';
 import './ui/styles.css';
-import { createGame, type Game, type GameConfig } from './core/game';
+import { createScene } from './render/scene';
 import { validateBank } from './core/questions';
-import questionsJson from './data/questions.json';
+import type { Question } from './core/types';
+import type { GameConfig } from './core/game';
 import { KeyboardInput, type DeviceId } from './input/keyboard';
 import { GamepadInput, type PadLike } from './input/gamepad';
 import { DeviceSlots } from './input/devices';
-import { createStepper } from './loop';
-import { createHud } from './ui/hud';
-import type { GameEvent, GameState, PlayerId, PlayerInput, RankEntry, ShownQuestion, Zone } from './core/types';
-import type { ScreenView } from './render/screen';
+import { safeStorage } from './storage';
+import { createMatchController } from './match';
+import { createRouter, type Screen } from './ui/router';
+import { createNav, emitUi, PadNav, type PadEvent } from './ui/nav';
+import { createPressStart } from './ui/press-start';
+import { createMenu } from './ui/menu';
+import { createOptions } from './ui/options';
+import { createJoin } from './ui/join';
+import { createResults } from './ui/results';
+import { createPause } from './ui/pause';
+import { createError } from './ui/error';
+import type { ScreenCtl } from './ui/dom';
 
 const params = new URLSearchParams(location.search);
 const showcase = params.get('showcase');
 
-const EXAMPLE: ShownQuestion = {
-  id: 'showcase', theme: 'Geografia', difficulty: 2, value: 200,
-  text: 'Qual é o maior estado do Brasil em área?',
-  options: ['Pará', 'Amazonas', 'Mato Grosso', 'Bahia'], correct: 'B',
-};
+const RESULTS_DELAY = 1.2; // s entre o último RESET e a tela de resultados
+const MODIFIER_CODES = new Set(['ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight', 'CapsLock']);
 
-// Vitrine visual (sem jogo): desenha um estado fixo da cena.
-async function runShowcase(kind: string): Promise<void> {
+/** Carrega e valida o banco; devolve a mensagem de erro (pt-BR) quando não há perguntas utilizáveis. */
+async function loadBank(): Promise<{ bank: Question[]; error: string | null }> {
+  try {
+    const raw: unknown = import.meta.env.DEV && params.get('bank') === 'empty'
+      ? { version: 1, questions: [] }
+      : (await import('./data/questions.json')).default;
+    const bank = validateBank(raw).questions;
+    if (bank.length === 0) return { bank, error: 'O banco de perguntas está vazio ou inválido. Não há com o que jogar.' };
+    return { bank, error: null };
+  } catch {
+    return { bank: [], error: 'Não foi possível carregar o banco de perguntas. Verifique a conexão e tente de novo.' };
+  }
+}
+
+async function runGame(): Promise<void> {
   const app = document.querySelector<HTMLDivElement>('#app');
   if (!app) return;
-  document.body.style.margin = '0';
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'display:block;width:100vw;height:100vh';
-  app.replaceChildren(canvas);
-
-  await Promise.all([document.fonts.load('40px Bungee'), document.fonts.load('600 40px Rubik'), document.fonts.load('500 40px Rubik')]);
-  const { renderer, scene, camera, resize } = createScene(canvas);
-  const arena = createArena(scene);
-  const screen = createScreen(scene);
-  const debug = createDebug(scene);
-  const effects = createEffects(scene);
-  const mode = params.get('mode') === 'points' ? 'points' : 'survival';
-  const totalRounds = mode === 'points' ? 12 : null;
-  const round = mode === 'points' ? 6 : 4;
-
-  if (kind === 'reveal') {
-    screen.draw({ kind: 'reveal', q: EXAMPLE, round, totalRounds, mode });
-    arena.setRevealed('B', ['A']);
-  } else if (kind === 'spin') {
-    screen.draw({ kind: 'spin', themes: ['Geografia', 'História', 'Ciência', 'Esportes', 'Cinema', 'Música'], highlighted: 'Ciência', round, totalRounds });
-  } else if (kind === 'suddenDeath') {
-    screen.draw({ kind: 'suddenDeath', players: ['P1', 'P3'] });
-  } else {
-    screen.draw({ kind: 'question', q: EXAMPLE, timeLeft: 5.2, round, totalRounds, mode });
-  }
-
-  if (params.has('debug')) {
-    const player = (id: 'P1' | 'P2' | 'P3' | 'P4', x: number, z: number, inPlay = true): GameState['players'][number] => ({
-      id, pos: { x, z }, vel: { x: 0, z: 0 }, facing: 0, inPlay, fallen: false,
-      score: 0, pushCooldown: 0, frozen: 0, knockTime: 0, knockVel: { x: 0, z: 0 },
-    });
-    debug.update({
-      mode, phase: 'question', phaseTime: 0, round, totalRounds, theme: EXAMPLE.theme, question: EXAMPLE, suddenDeath: null,
-      players: [player('P1', 1.25, -1.9), player('P2', -0.55, -2), player('P3', 3.3, -2.4), player('P4', 0, 0, false)],
-    });
-    debug.setVisible(true);
-  }
-
-  const cycle: Pose[] = ['idle', 'walk', 'push', 'cheer', 'fall'];
-  const chars = (kind === 'characters' ? (['P1', 'P2', 'P3', 'P4'] as const) : []).map((id, i) => {
-    const c = createCharacter(id);
-    scene.add(c.root);
-    return { c, x: -4.5 + i * 3, offset: i, lastStep: -1 };
-  });
-
-  window.addEventListener('resize', resize);
-  let prev = performance.now();
-  renderer.setAnimationLoop((now: number) => {
-    const dt = Math.min((now - prev) / 1000, 0.1); prev = now;
-    arena.update(dt);
-    if (kind === 'characters') {
-      for (const ch of chars) {
-        const step = Math.floor(now / 1000) + ch.offset;
-        const pose = cycle[step % cycle.length];
-        if (step !== ch.lastStep) {
-          if (pose === 'fall') ch.c.playFall();
-          else if (cycle[(step + cycle.length - 1) % cycle.length] === 'fall') ch.c.playRespawnDrop();
-          if (pose === 'push') effects.pushPuff({ x: ch.x, z: 1.8 }, { x: 0, z: 1 });
-          ch.lastStep = step;
-        }
-        ch.c.update(dt, { pos: { x: ch.x, z: 1 }, facing: 0, speed: pose === 'walk' ? 4 : 0, pose, visible: true });
-      }
-      effects.update(dt);
-    }
-    renderer.render(scene, camera);
-    (window as unknown as { showcaseReady?: boolean }).showcaseReady = true;
-  });
-}
-
-
-// ---------------------------------------------------------------------------
-// Partida jogável
-// ---------------------------------------------------------------------------
-
-const THEMES = ['Geografia', 'História', 'Ciências', 'Esportes', 'Entretenimento', 'Tecnologia'];
-const QUICK_DEVICES: DeviceId[] = ['kb-wasd', 'kb-arrows', 'kb-ijkl', 'gp-0'];
-const PLAYER_IDS: PlayerId[] = ['P1', 'P2', 'P3', 'P4'];
-const PUSH_POSE_TIME = 0.3;
-const SPIN_SETTLE = 0.6;
-const SPIN_TICK = 12; // trocas de tema por segundo durante a roleta
-
-function ordinal(n: number): string { return `${n}º`; }
-
-function rankingText(r: RankEntry): string {
-  const extra = r.score !== undefined ? ` — ${r.score.toLocaleString('pt-BR')} pts` : r.eliminatedRound !== undefined ? ` — caiu na rodada ${r.eliminatedRound}` : '';
-  return `${ordinal(r.pos)} ${r.id}${extra}`;
-}
-
-function screenView(state: GameState, clock: number): ScreenView | null {
-  const { phase } = state;
-  if (phase === 'spin') {
-    if (state.suddenDeath) return { kind: 'suddenDeath', players: state.suddenDeath };
-    const settled = state.theme !== null && state.phaseTime <= SPIN_SETTLE;
-    const highlighted = settled ? (state.theme as string) : THEMES[Math.floor(clock * SPIN_TICK) % THEMES.length];
-    return { kind: 'spin', themes: THEMES, highlighted, round: state.round, totalRounds: state.totalRounds };
-  }
-  const q = state.question;
-  if (!q) return null;
-  if (phase === 'question') return { kind: 'question', q, timeLeft: state.phaseTime, round: state.round, totalRounds: state.totalRounds, mode: state.mode };
-  if (phase === 'lock') return { kind: 'question', q, timeLeft: 0, round: state.round, totalRounds: state.totalRounds, mode: state.mode };
-  if (phase === 'reveal' || phase === 'reset') return { kind: 'reveal', q, round: state.round, totalRounds: state.totalRounds, mode: state.mode };
-  return null;
-}
-
-async function runMatch(): Promise<void> {
-  const app = document.querySelector<HTMLDivElement>('#app');
-  if (!app) return;
-  const quick = params.get('quick');
   const canvas = document.createElement('canvas');
   const hudRoot = document.createElement('div');
+  hudRoot.className = 'is-hidden';
   const fpsEl = document.createElement('div');
   fpsEl.className = 'fps';
-  const overEl = document.createElement('div');
-  overEl.className = 'over';
-  app.replaceChildren(canvas, hudRoot, fpsEl, overEl);
+  const ui = document.createElement('div');
+  ui.id = 'ui';
+  app.replaceChildren(canvas, hudRoot, fpsEl, ui);
 
   await Promise.all([document.fonts.load('40px Bungee'), document.fonts.load('600 40px Rubik'), document.fonts.load('500 40px Rubik')]);
   const { renderer, scene, camera, resize } = createScene(canvas);
-  const arena = createArena(scene);
-  const screen = createScreen(scene);
-  const debug = createDebug(scene);
-  const effects = createEffects(scene);
-  const chars = Object.fromEntries(PLAYER_IDS.map((id) => {
-    const c = createCharacter(id);
-    scene.add(c.root);
-    return [id, c];
-  })) as Record<PlayerId, ReturnType<typeof createCharacter>>;
-  const bank = validateBank(questionsJson).questions;
+  const { bank, error } = await loadBank();
 
+  const storage = safeStorage(); // uma única instância, repassada às telas
   const keyboard = new KeyboardInput();
   const gamepad = new GamepadInput();
-  let devices = new DeviceSlots();
-  let config: GameConfig | null = null;
-  let game: Game | null = null;
-  let hud = createHud(hudRoot);
+  const padNav = new PadNav();
+  const nav = createNav();
+  const router = createRouter();
+  const match = createMatchController({ scene, hudRoot, bank, keyboard, gamepad });
 
-  const n = Math.min(Math.max(Number(params.get('players')) || 2, 1), 4);
-  const startMatch = (): void => {
-    const players = PLAYER_IDS.slice(0, n);
-    devices = new DeviceSlots();
-    QUICK_DEVICES.slice(0, n).forEach((d) => devices.join(d));
-    const seed = Date.now();
-    const rounds = Number(params.get('rounds'));
-    config = quick === 'points'
-      ? { mode: 'points', rounds: rounds === 12 || rounds === 16 ? rounds : 8, players, seed }
-      : { mode: 'survival', players, seed };
-    game = createGame(config, bank);
-    keyboard.reset();
-    gamepad.reset();
-    hud = createHud(hudRoot);
-    arena.reset();
-    overEl.classList.remove('is-on');
-    overEl.replaceChildren();
-    for (const c of Object.values(chars)) c.reset();
-    effects.clear();
-    respawning.clear();
-    held.clear(); prev.clear(); pushUntil.clear(); cheering.clear(); holes = [];
-    lastZones = {};
-  };
+  let overTimer = -1; // contagem até a tela de resultados (<0 = inativa)
+  let activeDevices: DeviceSlots | null = null; // jogadores da partida em andamento
 
-  const held = new Map<PlayerId, PlayerInput>();
-  const prev = new Map<PlayerId, { x: number; z: number }>();
-  const pushUntil = new Map<PlayerId, number>();
-  const cheering = new Set<PlayerId>();
-  const respawning = new Set<PlayerId>(); // core mantém fallen até o fim do RESET (R12)
-  let holes: Zone[] = [];
-  let lastZones: Partial<Record<PlayerId, Zone | null>> = {};
-  let clock = 0;
-  const frames: number[] = [];
-
-  window.addEventListener('keydown', (e) => {
-    if (e.code === 'F1') { e.preventDefault(); const on = !fpsEl.classList.contains('is-on'); fpsEl.classList.toggle('is-on', on); debug.setVisible(on); return; }
-    if (e.code === 'KeyN' && fpsEl.classList.contains('is-on')) { game?.debugSkipPhase(); return; }
-    if (e.code === 'KeyR' && game?.state.phase === 'over') { startMatch(); return; }
-    if (keyboard.keyDown(e.code)) e.preventDefault();
+  // --- telas ---------------------------------------------------------------
+  const pressStart = createPressStart();
+  const menu = createMenu({ nav, storage, onPlay: () => router.go('join'), onOptions: () => router.go('options') });
+  const options = createOptions(nav, () => router.go('menu'));
+  const join = createJoin({
+    keyboard,
+    onStart: (config, devices) => { router.go('match', { config, devices }); },
+    onBack: () => router.go('menu'),
   });
-  window.addEventListener('keyup', (e) => keyboard.keyUp(e.code));
-  window.addEventListener('blur', () => keyboard.reset());
-  window.addEventListener('resize', resize);
+  const results = createResults({ nav, storage, onAgain: () => router.go('join', { keep: true }), onMenu: () => router.go('menu') });
+  const pause = createPause(nav, resumeMatch, () => { resumeMatch(); router.go('menu'); });
+  const errorScreen = createError(nav);
+  const noop: ScreenCtl = { el: document.createElement('div'), show() {}, hide() {} };
+  const screens: Record<Screen, ScreenCtl> = { 'press-start': pressStart, menu, options, join, match: noop, results };
+  ui.append(pressStart.el, menu.el, options.el, join.el, results.el, pause.el, errorScreen.el);
 
-  function handleEvents(state: GameState, events: GameEvent[]): void {
-    for (const e of events) {
-      if (e.type === 'phaseChanged' && e.phase === 'spin') { arena.reset(); holes = []; respawning.clear(); }
-      else if (e.type === 'locked') lastZones = e.zones;
-      else if (e.type === 'pushed') {
-        pushUntil.set(e.by, clock + PUSH_POSE_TIME);
-        const p = state.players.find((q) => q.id === e.by);
-        if (p && e.targets.length > 0) {
-          const dir = { x: Math.sin(p.facing), z: Math.cos(p.facing) };
-          effects.pushPuff({ x: p.pos.x + dir.x * 0.8, z: p.pos.z + dir.z * 0.8 }, dir);
-        }
-      } else if (e.type === 'revealed') {
-        holes = e.fallen.map((id) => lastZones[id]).filter((z): z is Zone => !!z);
-        arena.setRevealed(e.correct, holes);
-        for (const id of e.fallen) chars[id].playFall();
-        cheering.clear();
-        if (!e.voided) {
-          for (const p of state.players) {
-            const ok = state.mode === 'points' ? (e.scored[p.id] ?? 0) > 0 : p.inPlay && !e.fallen.includes(p.id);
-            if (ok) cheering.add(p.id);
-          }
-        }
-      } else if (e.type === 'respawned') {
-        for (const id of e.players) { respawning.add(id); chars[id].playRespawnDrop(); }
-      } else if (e.type === 'gameOver') {
-        const rows = e.ranking.map((r) => { const d = document.createElement('div'); d.className = 'rank'; d.textContent = rankingText(r); return d; });
-        const h = document.createElement('h1'); h.textContent = 'Fim de jogo';
-        const hint = document.createElement('div'); hint.className = 'hint'; hint.textContent = 'R para reiniciar';
-        overEl.replaceChildren(h, ...rows, hint);
-        overEl.classList.add('is-on');
+  function pauseMatch(): void {
+    if (router.current() !== 'match' || match.isPaused() || match.isOver() || overTimer >= 0) return;
+    match.pause();
+    pause.show();
+  }
+  function resumeMatch(): void {
+    if (!match.isPaused()) return;
+    pause.hide();
+    match.resume();
+    keyboard.reset(); // teclas soltas durante a pausa não podem ficar "presas"
+    gamepad.reset();
+  }
+
+  router.onChange((s, p, from) => {
+    screens[from].hide();
+    document.body.dataset.screen = s;
+    hudRoot.classList.toggle('is-hidden', s !== 'match');
+    activeDevices = null;
+    if (s === 'match') {
+      const { config, devices } = p as { config: GameConfig; devices: DeviceSlots };
+      activeDevices = devices;
+      overTimer = -1;
+      match.start(config, devices);
+      nav.setActive(null);
+    } else if (from === 'match') {
+      match.stop();
+    }
+    screens[s].show(p);
+  });
+
+  // --- clique/Enter em qualquer botão da interface soa como "confirmar" ------
+  ui.addEventListener('click', (e) => { if ((e.target as Element).closest('button')) emitUi('confirmar'); });
+
+  // --- teclado ---------------------------------------------------------------
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const s = router.current();
+    if (e.code === 'F1') { e.preventDefault(); const on = !fpsEl.classList.contains('is-on'); fpsEl.classList.toggle('is-on', on); match.setDebug(on); return; }
+    if (e.code === 'KeyN' && fpsEl.classList.contains('is-on') && s === 'match') { match.skipPhase(); return; }
+    if (errorScreen.el.hidden === false) { if (nav.key(e.code)) e.preventDefault(); return; }
+
+    if (s === 'press-start') {
+      if (e.repeat || MODIFIER_CODES.has(e.code) || e.code === 'Tab' || /^F\d+$/.test(e.code)) return;
+      e.preventDefault();
+      emitUi('confirmar');
+      router.go('menu');
+      return;
+    }
+    if (s === 'match' && !match.isPaused()) {
+      if (e.code === 'Escape') { e.preventDefault(); pauseMatch(); return; }
+      if (keyboard.keyDown(e.code)) e.preventDefault();
+      return;
+    }
+    const isDir = e.code.startsWith('Arrow') || e.code === 'KeyW' || e.code === 'KeyA' || e.code === 'KeyS' || e.code === 'KeyD';
+    if (e.repeat && !(isDir && s !== 'join')) { if (e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape') e.preventDefault(); return; }
+    if (s === 'join') { if (join.key(e.code)) e.preventDefault(); return; }
+    if (nav.key(e.code)) e.preventDefault();
+  });
+  window.addEventListener('keyup', (e) => {
+    keyboard.keyUp(e.code);
+    // o clique nativo do Espaço sai no keyup: a navegação já tratou no keydown
+    if (router.current() !== 'match' && (e.code === 'Space' || e.code === 'Enter')) e.preventDefault();
+  });
+  window.addEventListener('blur', () => { keyboard.reset(); pauseMatch(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pauseMatch(); });
+
+  // --- escala da interface (desenhada em 1280x720) -------------------------
+  const onResize = (): void => {
+    resize();
+    ui.style.setProperty('--ui-scale', String(Math.min(window.innerWidth / 1280, window.innerHeight / 720)));
+  };
+  window.addEventListener('resize', onResize);
+  onResize();
+
+  // --- gamepads ---------------------------------------------------------------
+  function handlePads(now: number): void {
+    const pads = navigator.getGamepads ? Array.from(navigator.getGamepads()) as (PadLike | null)[] : [];
+    const poll = gamepad.poll(pads);
+    const events: PadEvent[] = padNav.poll(pads, now);
+    const s = router.current();
+    if (s === 'join') for (const d of poll.disconnected) join.padDisconnected(d);
+    if (s === 'match') {
+      for (const d of poll.disconnected) activeDevices?.setConnected(d, false);
+      for (const d of poll.reconnected) activeDevices?.setConnected(d, true);
+    }
+
+    if (errorScreen.el.hidden === false) { for (const e of events) nav.pad(e.kind); return; }
+    if (s === 'press-start') {
+      if (poll.joined.length > 0 || events.length > 0) { emitUi('confirmar'); router.go('menu'); }
+      return;
+    }
+    if (s === 'join') { join.pads(poll.joined, events); return; }
+    if (s === 'match') {
+      for (const e of events) {
+        if (match.isPaused()) { if (!nav.pad(e.kind) && e.kind === 'start') resumeMatch(); }
+        else if (e.kind === 'start') { pauseMatch(); break; }
       }
+      return;
     }
-    if (state.phase !== 'reveal') cheering.clear();
-  }
-
-  function render(state: GameState, alpha: number, dt: number): void {
-    for (const id of PLAYER_IDS) {
-      const p = state.players.find((q) => q.id === id);
-      if (!p) { chars[id].update(dt, { pos: { x: 0, z: 0 }, facing: 0, speed: 0, pose: 'idle', visible: false }); continue; }
-      const a = prev.get(id) ?? p.pos;
-      const pos = { x: a.x + (p.pos.x - a.x) * alpha, z: a.z + (p.pos.z - a.z) * alpha };
-      const speed = Math.hypot(p.vel.x, p.vel.z);
-      const pose = p.fallen && !respawning.has(id) ? 'fall'
-        : (pushUntil.get(id) ?? 0) > clock ? 'push'
-          : cheering.has(id) ? 'cheer'
-            : speed > 0.2 ? 'walk' : 'idle';
-      chars[id].update(dt, { pos, facing: p.facing, speed, pose, visible: p.inPlay });
+    for (const e of events) {
+      nav.pad(e.kind);
+      if (router.current() !== s) break; // a tela mudou: descarta o resto do quadro
     }
   }
 
-  startMatch();
-  const stepper = createStepper();
+  // --- laço principal --------------------------------------------------------
+  const frames: number[] = [];
   let last = performance.now();
   renderer.setAnimationLoop((now: number) => {
     const real = (now - last) / 1000; last = now;
-    const dt = Math.min(real, 0.1);
-    clock += dt;
     frames.push(now);
     while (frames.length > 1 && now - frames[0] > 1000) frames.shift();
 
-    if (!game) return;
-    const state = game.state;
-    if (import.meta.env.DEV) (window as unknown as { matchState?: GameState }).matchState = state; // gancho para a verificação automatizada
+    handlePads(now);
+    match.update(real);
 
-    // entrada: teclado e gamepads (o push fica pendente até algum passo consumir)
-    const pads = navigator.getGamepads ? Array.from(navigator.getGamepads()) as (PadLike | null)[] : [];
-    const poll = gamepad.poll(pads);
-    for (const d of poll.disconnected) devices.setConnected(d, false);
-    for (const d of poll.reconnected) devices.setConnected(d, true);
-    for (const id of devices.players()) {
-      const d = devices.deviceOf(id);
-      if (!d) continue;
-      const r = d.startsWith('gp-') ? gamepad.read(d) : keyboard.read(d);
-      const h = held.get(id);
-      held.set(id, { move: r.move, push: r.push || (h?.push ?? false) });
+    if (router.current() === 'match' && !match.isPaused()) {
+      if (overTimer < 0 && match.isOver()) overTimer = RESULTS_DELAY;
+      else if (overTimer >= 0) {
+        overTimer -= Math.min(real, 0.1);
+        const res = match.result();
+        if (overTimer <= 0 && res) { overTimer = -1; router.go('results', res); }
+      }
     }
-
-    const { steps, alpha } = stepper.advance(real);
-    const events: GameEvent[] = [];
-    for (let i = 0; i < steps; i++) {
-      for (const p of state.players) prev.set(p.id, { ...p.pos });
-      const inputs: Partial<Record<PlayerId, PlayerInput>> = Object.fromEntries(held);
-      events.push(...game.step(1 / 60, inputs));
-      for (const h of held.values()) h.push = false;
-    }
-    if (steps === 0) for (const p of state.players) if (!prev.has(p.id)) prev.set(p.id, { ...p.pos });
-
-    handleEvents(state, events);
-    render(state, alpha, dt);
-    arena.update(dt);
-    effects.update(dt);
-    const view = screenView(state, clock);
-    if (view) screen.draw(view);
-    hud.update(state, devices, events);
-    if (fpsEl.classList.contains('is-on')) {
-      debug.update(state);
-      fpsEl.textContent = `${frames.length} FPS`;
-    }
+    if (fpsEl.classList.contains('is-on')) fpsEl.textContent = `${frames.length} FPS`;
     renderer.render(scene, camera);
-    if (import.meta.env.DEV) (window as unknown as { matchReady?: boolean }).matchReady = true;
   });
+
+  // --- partida rápida para testes (só em desenvolvimento) ---------------------
+  if (error) {
+    document.body.dataset.screen = 'error';
+    errorScreen.show(error);
+  } else if (import.meta.env.DEV && params.has('quick')) {
+    const quick = params.get('quick');
+    const n = Math.min(Math.max(Number(params.get('players')) || 2, 1), 4);
+    const devices = new DeviceSlots();
+    (['kb-wasd', 'kb-arrows', 'kb-ijkl', 'gp-0'] as DeviceId[]).slice(0, n).forEach((d) => devices.join(d));
+    const players = devices.players();
+    const seed = Date.now();
+    const rounds = Number(params.get('rounds'));
+    const config: GameConfig = quick === 'points'
+      ? { mode: 'points', rounds: rounds === 12 || rounds === 16 ? rounds : 8, players, seed }
+      : { mode: 'survival', players, seed };
+    router.go('match', { config, devices });
+  } else {
+    document.body.dataset.screen = 'press-start';
+    pressStart.show();
+  }
 }
 
 if (showcase) {
-  void runShowcase(showcase);
-} else if (params.has('quick')) {
-  void runMatch();
+  void import('./showcase').then((m) => m.runShowcase(showcase, params));
 } else {
-  const app = document.querySelector<HTMLDivElement>('#app');
-  if (app) app.textContent = 'Alçapão';
+  void runGame();
 }
