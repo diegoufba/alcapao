@@ -1,4 +1,5 @@
 import { test, expect, describe } from 'vitest';
+import { DeviceSlots } from '../../src/input/devices';
 import { GamepadInput, type PadLike } from '../../src/input/gamepad';
 
 function pad(index: number, o: { axes?: number[]; pressed?: number[]; connected?: boolean } = {}): PadLike {
@@ -64,11 +65,30 @@ describe('GamepadInput', () => {
     expect(g.read('gp-0').push).toBe(true);
   });
 
-  test('joined só com botão apertado, e uma vez', () => {
+  test('joined só com botão apertado; segurar não reemite', () => {
     const g = new GamepadInput();
     expect(g.poll([pad(0)]).joined).toEqual([]);
     expect(g.poll([pad(0, { pressed: [3] })]).joined).toEqual(['gp-0']);
     expect(g.poll([pad(0, { pressed: [3] })]).joined).toEqual([]);
+  });
+
+  test('joined reaparece em novo aperto (reentrada após leave)', () => {
+    const g = new GamepadInput();
+    const slots = new DeviceSlots();
+    for (const id of g.poll([pad(0, { pressed: [0] })]).joined) slots.join(id);
+    expect(slots.slotOf('gp-0')).toBe('P1');
+    slots.leave('P1');
+    g.poll([pad(0)]);
+    const again = g.poll([pad(0, { pressed: [1] })]).joined;
+    expect(again).toEqual(['gp-0']);
+    expect(slots.join(again[0])).toBe('P1');
+  });
+
+  test('reset descarta push pendente', () => {
+    const g = new GamepadInput();
+    g.poll([pad(0, { pressed: [0] })]);
+    g.reset();
+    expect(g.read('gp-0').push).toBe(false);
   });
 
   test('disconnected e reconnected', () => {

@@ -17,7 +17,7 @@ const BTN_RIGHT = 15;
 
 interface PadState {
   connected: boolean;
-  announced: boolean; // já apareceu em `joined`
+  prevAny: boolean; // algum botão apertado no poll anterior
   prevPush: boolean;
   pendingPush: boolean;
   move: { x: number; z: number };
@@ -29,8 +29,10 @@ export class GamepadInput {
 
   /**
    * Atualiza o estado a partir de um snapshot.
-   * - `joined`: pads conectados cujo primeiro aperto de qualquer botão foi neste poll
-   *   (intenção de entrar; a tela de entrada decide). Pad que só apareceu, sem apertar nada, não entra.
+   * - `joined`: pads conectados com borda de subida (não apertado no poll anterior, apertado agora)
+   *   em QUALQUER botão, a cada vez: é só intenção de entrar; a tela de entrada decide via
+   *   DeviceSlots (join é idempotente). Segurar o botão não reemite; pad que só apareceu não entra.
+   *   Um pad em `reconnected` neste poll não entra também em `joined`.
    * - `disconnected`: pads conhecidos que agora vieram null ou !connected.
    * - `reconnected`: pads que voltaram depois de desconectados.
    */
@@ -47,17 +49,16 @@ export class GamepadInput {
       let st = this.pads.get(pad.index);
       const anyPressed = pad.buttons.some((b) => b.pressed);
       if (!st) {
-        st = { connected: true, announced: false, prevPush: false, pendingPush: false, move: { x: 0, z: 0 } };
+        st = { connected: true, prevAny: false, prevPush: false, pendingPush: false, move: { x: 0, z: 0 } };
         this.pads.set(pad.index, st);
       } else if (!st.connected) {
         st.connected = true;
         st.prevPush = false;
+        st.prevAny = false;
         reconnected.push(id);
       }
-      if (!st.announced && anyPressed) {
-        st.announced = true;
-        if (!reconnected.includes(id)) joined.push(id);
-      }
+      if (anyPressed && !st.prevAny && !reconnected.includes(id)) joined.push(id);
+      st.prevAny = anyPressed;
       const pushed = pad.buttons[BTN_PUSH]?.pressed ?? false;
       if (pushed && !st.prevPush) st.pendingPush = true;
       st.prevPush = pushed;
@@ -68,11 +69,17 @@ export class GamepadInput {
       if (st.connected && !seen.has(index)) {
         st.connected = false;
         st.pendingPush = false;
+        st.prevAny = false;
         st.move = { x: 0, z: 0 };
         disconnected.push(`gp-${index}`);
       }
     }
     return { joined, disconnected, reconnected };
+  }
+
+  /** Descarta bordas de push pendentes (chamar ao iniciar a partida, junto com KeyboardInput.reset). */
+  reset(): void {
+    for (const st of this.pads.values()) st.pendingPush = false;
   }
 
   read(id: DeviceId): PlayerInput {
