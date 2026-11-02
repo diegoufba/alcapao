@@ -48,7 +48,7 @@ interface JoinDeps {
 /** `show({ keep: true })` mantém jogadores (jogar de novo); sem isso, começa vazio. Modo e rodadas persistem. */
 export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDeps): JoinScreen {
   let devices = new DeviceSlots();
-  let mode: Mode = 'points';
+  let mode: Mode = 'survival';
   let rounds: Rounds = 12;
   let row: 'mode' | 'rounds' = 'mode';
 
