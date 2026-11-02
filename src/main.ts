@@ -186,6 +186,9 @@ async function runMatch(): Promise<void> {
     arena.reset();
     overEl.classList.remove('is-on');
     overEl.replaceChildren();
+    for (const c of Object.values(chars)) c.reset();
+    effects.clear();
+    respawning.clear();
     held.clear(); prev.clear(); pushUntil.clear(); cheering.clear(); holes = [];
     lastZones = {};
   };
@@ -194,6 +197,7 @@ async function runMatch(): Promise<void> {
   const prev = new Map<PlayerId, { x: number; z: number }>();
   const pushUntil = new Map<PlayerId, number>();
   const cheering = new Set<PlayerId>();
+  const respawning = new Set<PlayerId>(); // core mantém fallen até o fim do RESET (R12)
   let holes: Zone[] = [];
   let lastZones: Partial<Record<PlayerId, Zone | null>> = {};
   let clock = 0;
@@ -211,7 +215,7 @@ async function runMatch(): Promise<void> {
 
   function handleEvents(state: GameState, events: GameEvent[]): void {
     for (const e of events) {
-      if (e.type === 'phaseChanged' && e.phase === 'spin') { arena.reset(); holes = []; }
+      if (e.type === 'phaseChanged' && e.phase === 'spin') { arena.reset(); holes = []; respawning.clear(); }
       else if (e.type === 'locked') lastZones = e.zones;
       else if (e.type === 'pushed') {
         pushUntil.set(e.by, clock + PUSH_POSE_TIME);
@@ -232,7 +236,7 @@ async function runMatch(): Promise<void> {
           }
         }
       } else if (e.type === 'respawned') {
-        for (const id of e.players) chars[id].playRespawnDrop();
+        for (const id of e.players) { respawning.add(id); chars[id].playRespawnDrop(); }
       } else if (e.type === 'gameOver') {
         const rows = e.ranking.map((r) => { const d = document.createElement('div'); d.className = 'rank'; d.textContent = rankingText(r); return d; });
         const h = document.createElement('h1'); h.textContent = 'Fim de jogo';
@@ -251,7 +255,7 @@ async function runMatch(): Promise<void> {
       const a = prev.get(id) ?? p.pos;
       const pos = { x: a.x + (p.pos.x - a.x) * alpha, z: a.z + (p.pos.z - a.z) * alpha };
       const speed = Math.hypot(p.vel.x, p.vel.z);
-      const pose = p.fallen ? 'fall'
+      const pose = p.fallen && !respawning.has(id) ? 'fall'
         : (pushUntil.get(id) ?? 0) > clock ? 'push'
           : cheering.has(id) ? 'cheer'
             : speed > 0.2 ? 'walk' : 'idle';
@@ -308,7 +312,7 @@ async function runMatch(): Promise<void> {
       fpsEl.textContent = `${frames.length} FPS`;
     }
     renderer.render(scene, camera);
-    (window as unknown as { matchReady?: boolean }).matchReady = true;
+    if (import.meta.env.DEV) (window as unknown as { matchReady?: boolean }).matchReady = true;
   });
 }
 

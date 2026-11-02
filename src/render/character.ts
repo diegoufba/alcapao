@@ -9,6 +9,8 @@ export interface Character {
   update(dt: number, s: CharacterState): void;
   playFall(): void;
   playRespawnDrop(): void;
+  /** Volta ao estado inicial (sem queda, sem queda de respawn, visível). */
+  reset(): void;
 }
 
 const SHADES: Record<PlayerId, { dark: string; hair: string }> = {
@@ -81,9 +83,10 @@ export function createCharacter(id: PlayerId): Character {
     root,
     playFall() { fall = { state: 'falling', t: 0 }; },
     playRespawnDrop() { fall = { state: 'none', t: 0 }; drop = 0; },
+    reset() { fall = { state: 'none', t: 0 }; drop = -1; root.visible = true; root.position.y = 0; },
     update(dt, s) {
       time += dt;
-      if (s.pose === 'fall' && fall.state === 'none') fall = { state: 'falling', t: 0 };
+      if (s.pose === 'fall' && fall.state === 'none' && drop < 0) fall = { state: 'falling', t: 0 };
       if (fall.state === 'falling') {
         fall.t += dt;
         if (fall.t >= FALL_TIME) fall.state = 'gone';

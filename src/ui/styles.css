@@ -12,41 +12,25 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
 #app canvas { display: block; width: 100%; height: 100%; }
 
 .hud {
-  position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 20px 16px;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
-  background: linear-gradient(to top, rgba(14, 17, 32, 0.92) 55%, rgba(14, 17, 32, 0));
-  pointer-events: none;
+  position: fixed; left: 40px; right: 40px; bottom: 20px;
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; pointer-events: none;
 }
 .hud-card {
-  position: relative; background: var(--card); border: 2px solid var(--line); border-top: 5px solid var(--pc);
-  border-radius: 14px; padding: 10px 14px 12px; min-width: 0; grid-column: auto;
+  display: flex; flex-direction: column; gap: 6px; background: #161b33; border: 2px solid var(--pc);
+  border-radius: 10px; padding: 10px 14px; min-width: 0; grid-column: auto;
 }
-.hud-card.is-out { opacity: 0.45; }
-.hud-card.is-offline { border-color: #ff5a5a; }
-.hud-head { display: flex; align-items: center; gap: 8px; }
+.hud-card.is-dim { border-color: #2a2e44; opacity: 0.6; }
+.hud-head { display: flex; align-items: center; gap: 10px; }
 .hud-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--pc); flex: none; }
-.hud-id { font-family: Bungee, sans-serif; font-size: 20px; color: var(--pc); }
-.hud-device { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--muted); white-space: nowrap; }
-.hud-statusrow { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 8px; min-height: 30px; }
-.hud-status { font-size: 22px; font-weight: 600; white-space: nowrap; }
-.is-fallen .hud-status { color: #ff7a7a; }
-.hud-bar { height: 8px; border-radius: 4px; background: #0e1120; overflow: hidden; }
-.hud-fill { height: 100%; width: 100%; background: var(--muted); border-radius: 4px; transition: width 0.08s linear; }
-.is-ready .hud-fill { background: var(--pc); }
-.hud-cool { margin-top: 4px; font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
-.hud-warn { display: none; margin-top: 6px; font-size: 13px; font-weight: 600; color: #ff7a7a; }
-.is-offline .hud-warn { display: block; }
-
-.hud-chip {
-  font-family: Bungee, sans-serif; font-size: 20px; color: var(--accent); opacity: 0;
-}
-.hud-chip.is-flying { animation: chip-fly 1.6s ease-out forwards; }
-@keyframes chip-fly {
-  0% { opacity: 0; transform: translateY(-120px) scale(1.8); }
-  20% { opacity: 1; }
-  60% { opacity: 1; transform: translateY(0) scale(1.2); }
-  100% { opacity: 0; transform: translateY(0) scale(1); }
-}
+.hud-id { font-family: Bungee, sans-serif; font-size: 16px; }
+.hud-device { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.hud-spacer { flex-grow: 1; }
+.hud-status { font-size: 14px; font-weight: 600; white-space: nowrap; color: var(--text); }
+.hud-row { display: flex; align-items: center; gap: 8px; }
+.hud-pushlabel { font-size: 12px; color: var(--muted); width: 74px; }
+.hud-track { flex-grow: 1; height: 6px; border-radius: 3px; background: #2a3157; overflow: hidden; }
+.hud-fill { height: 6px; width: 100%; background: var(--pc); }
+.hud-cool { font-size: 12px; color: var(--muted); width: 52px; text-align: right; }
 
 .fps {
   position: fixed; top: 8px; right: 10px; padding: 3px 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.6);

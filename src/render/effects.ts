@@ -7,7 +7,7 @@ const BIT_COUNT = 7, STREAK_COUNT = 3;
 
 interface Item { mesh: THREE.Mesh; vel: THREE.Vector3; base: number; age: number; material: THREE.MeshBasicMaterial }
 
-export function createEffects(scene: THREE.Scene): { pushPuff(at: Vec2, dir: Vec2): void; update(dt: number): void } {
+export function createEffects(scene: THREE.Scene): { pushPuff(at: Vec2, dir: Vec2): void; update(dt: number): void; clear(): void } {
   const bitGeo = new THREE.IcosahedronGeometry(0.1, 0);
   const streakGeo = new THREE.BoxGeometry(0.9, 0.05, 0.05);
   const colors = ['#FFFFFF', ACCENT];
@@ -35,6 +35,10 @@ export function createEffects(scene: THREE.Scene): { pushPuff(at: Vec2, dir: Vec
         const pos = new THREE.Vector3(at.x - dx * 1.2, 1.0 + i * 0.4, at.z - dz * 1.2 + i * 0.1);
         spawn(streakGeo, '#F4F5FF', pos, new THREE.Vector3(-dx * 1.5, 0, -dz * 1.5), 1, yaw);
       }
+    },
+    clear() {
+      for (const it of items) { scene.remove(it.mesh); it.material.dispose(); }
+      items.length = 0;
     },
     update(dt) {
       for (let i = items.length - 1; i >= 0; i--) {

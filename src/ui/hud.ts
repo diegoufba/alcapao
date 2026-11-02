@@ -21,11 +21,11 @@ interface Card {
   el: HTMLElement;
   status: HTMLElement;
   fill: HTMLElement;
-  cool: HTMLElement;
-  warn: HTMLElement;
-  chip: HTMLElement;
-  last: { status: string; width: string; cool: string; offline: boolean; out: boolean; fallen: boolean };
+  label: HTMLElement;
+  last: { status: string; color: string; width: string; label: string; dim: boolean };
 }
+
+const RED = '#FF8A8A', GREEN = '#7CF0B8', TEXT = '#EEF0FF';
 
 function el(tag: string, cls: string, text = ''): HTMLElement {
   const e = document.createElement(tag);
@@ -34,16 +34,31 @@ function el(tag: string, cls: string, text = ''): HTMLElement {
   return e;
 }
 
-function statusOf(p: PlayerState, state: GameState, eliminatedAt: Map<PlayerId, number>): string {
+const fmt = (n: number): string => n.toLocaleString('pt-BR');
+
+/** Texto, cor e esmaecimento do status (§5 / mockup). */
+function statusOf(
+  p: PlayerState, state: GameState, eliminatedAt: Map<PlayerId, number>, gain: Map<PlayerId, number>, offline: boolean,
+): { text: string; color: string; dim: boolean } {
   const survival = state.mode === 'survival';
-  if (!p.inPlay) return survival ? `Eliminado (R${eliminatedAt.get(p.id) ?? state.round})` : 'Espectador';
-  if (!survival) return `${p.score.toLocaleString('pt-BR')} pts`;
-  if (state.phase === 'reveal') return p.fallen ? 'Caiu!' : 'Acertou';
-  if (state.phase === 'question' || state.phase === 'lock') {
-    const z = zoneOf(p.pos);
-    return z ? `Em ${z}` : 'Na faixa';
+  const rev = state.phase === 'reveal';
+  if (!p.inPlay) {
+    return { text: survival ? `Eliminado (R${eliminatedAt.get(p.id) ?? state.round})` : 'Espectador', color: TEXT, dim: true };
   }
-  return 'Na arena';
+  if (offline) return { text: 'Controle desconectado', color: RED, dim: false };
+  if (survival) {
+    if (rev) return p.fallen ? { text: 'Caiu!', color: RED, dim: true } : { text: 'Acertou', color: GREEN, dim: false };
+    if (state.phase === 'question' || state.phase === 'lock') {
+      const z = zoneOf(p.pos);
+      return { text: z ? `Em ${z}` : 'Na faixa', color: TEXT, dim: false };
+    }
+    return { text: 'Na arena', color: TEXT, dim: false };
+  }
+  if (!rev) return { text: `${fmt(p.score)} pts`, color: TEXT, dim: false };
+  const g = gain.get(p.id) ?? 0;
+  if (p.fallen) return { text: `${fmt(p.score)} · caiu`, color: RED, dim: false };
+  if (g > 0) return { text: `${fmt(p.score)} (+${g})`, color: GREEN, dim: false };
+  return { text: `${fmt(p.score)} pts`, color: TEXT, dim: false };
 }
 
 export function createHud(root: HTMLElement): {
@@ -53,32 +68,32 @@ export function createHud(root: HTMLElement): {
   root.replaceChildren();
   const cards = new Map<PlayerId, Card>();
   const eliminatedAt = new Map<PlayerId, number>();
+  const gain = new Map<PlayerId, number>();
 
   function build(p: PlayerState, label: string): Card {
     const card = el('div', 'hud-card');
     card.style.setProperty('--pc', PLAYER_COLORS[p.id]);
     const head = el('div', 'hud-head');
-    head.append(el('span', 'hud-dot'), el('span', 'hud-id', p.id), el('span', 'hud-device', label));
-    const status = el('div', 'hud-status');
-    const chip = el('span', 'hud-chip');
-    const row = el('div', 'hud-statusrow');
-    row.append(status, chip);
-    const bar = el('div', 'hud-bar');
+    const status = el('span', 'hud-status');
+    head.append(el('span', 'hud-dot'), el('span', 'hud-id', p.id), el('span', 'hud-device', label), el('div', 'hud-spacer'), status);
+    const row = el('div', 'hud-row');
+    const track = el('div', 'hud-track');
     const fill = el('div', 'hud-fill');
-    bar.append(fill);
-    const cool = el('div', 'hud-cool');
-    const warn = el('div', 'hud-warn', 'Controle desconectado');
-    card.append(head, row, bar, cool, warn);
+    track.append(fill);
+    const lbl = el('span', 'hud-cool');
+    row.append(el('span', 'hud-pushlabel', 'Empurrão'), track, lbl);
+    card.append(head, row);
     root.append(card);
-    return { el: card, status, fill, cool, warn, chip, last: { status: '', width: '', cool: '', offline: false, out: false, fallen: false } };
+    return { el: card, status, fill, label: lbl, last: { status: '', color: '', width: '', label: '', dim: false } };
   }
 
   return {
     update(state, devices, events) {
       for (const e of events) {
-        if (e.type === 'revealed' && state.mode === 'survival') {
-          for (const id of e.fallen) eliminatedAt.set(id, state.round);
-        }
+        if (e.type !== 'revealed') continue;
+        if (state.mode === 'survival') for (const id of e.fallen) eliminatedAt.set(id, state.round);
+        gain.clear();
+        for (const [id, pts] of Object.entries(e.scored) as [PlayerId, number][]) if (pts > 0) gain.set(id, pts);
       }
       for (const p of state.players) {
         let c = cards.get(p.id);
@@ -86,35 +101,16 @@ export function createHud(root: HTMLElement): {
           c = build(p, deviceLabel(devices.deviceOf(p.id)));
           cards.set(p.id, c);
         }
-        const status = statusOf(p, state, eliminatedAt);
-        if (status !== c.last.status) { c.status.textContent = status; c.last.status = status; }
+        const st = statusOf(p, state, eliminatedAt, gain, !devices.isConnected(p.id));
+        if (st.text !== c.last.status) { c.status.textContent = st.text; c.last.status = st.text; }
+        if (st.color !== c.last.color) { c.status.style.color = st.color; c.last.color = st.color; }
+        if (st.dim !== c.last.dim) { c.el.classList.toggle('is-dim', st.dim); c.last.dim = st.dim; }
 
-        const ratio = Math.min(Math.max(1 - p.pushCooldown / PUSH_COOLDOWN, 0), 1);
+        const ratio = p.inPlay ? Math.min(Math.max(1 - p.pushCooldown / PUSH_COOLDOWN, 0), 1) : 0;
         const width = `${Math.round(ratio * 100)}%`;
         if (width !== c.last.width) { c.fill.style.width = width; c.last.width = width; }
-        const cool = p.pushCooldown > 0 ? 'recarga' : 'pronto';
-        if (cool !== c.last.cool) {
-          c.cool.textContent = cool; c.last.cool = cool;
-          c.el.classList.toggle('is-ready', cool === 'pronto');
-        }
-
-        const offline = !devices.isConnected(p.id);
-        if (offline !== c.last.offline) { c.el.classList.toggle('is-offline', offline); c.last.offline = offline; }
-        const out = !p.inPlay;
-        if (out !== c.last.out) { c.el.classList.toggle('is-out', out); c.last.out = out; }
-        const fallen = p.fallen;
-        if (fallen !== c.last.fallen) { c.el.classList.toggle('is-fallen', fallen); c.last.fallen = fallen; }
-      }
-      for (const e of events) {
-        if (e.type !== 'revealed') continue;
-        for (const [id, pts] of Object.entries(e.scored) as [PlayerId, number][]) {
-          const c = cards.get(id);
-          if (!c || !(pts > 0)) continue;
-          c.chip.textContent = `+${pts}`;
-          c.chip.classList.remove('is-flying');
-          void c.chip.offsetWidth; // reinicia a animação CSS
-          c.chip.classList.add('is-flying');
-        }
+        const label = !p.inPlay ? '—' : p.pushCooldown > 0 ? 'recarga' : 'pronto';
+        if (label !== c.last.label) { c.label.textContent = label; c.last.label = label; }
       }
     },
   };
