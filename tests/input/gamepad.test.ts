@@ -113,3 +113,18 @@ describe('GamepadInput', () => {
     expect(new GamepadInput().read('kb-wasd')).toEqual({ move: { x: 0, z: 0 }, push: false });
   });
 });
+
+describe('GamepadInput.isConnected', () => {
+  test('acompanha conexão, desconexão e reconexão; teclado nunca', () => {
+    const g = new GamepadInput();
+    const pad = { index: 0, connected: true, axes: [0, 0], buttons: [{ pressed: false }] };
+    expect(g.isConnected('gp-0')).toBe(false);
+    g.poll([pad]);
+    expect(g.isConnected('gp-0')).toBe(true);
+    g.poll([null]);
+    expect(g.isConnected('gp-0')).toBe(false);
+    g.poll([pad]);
+    expect(g.isConnected('gp-0')).toBe(true);
+    expect(g.isConnected('kb-wasd')).toBe(false);
+  });
+});

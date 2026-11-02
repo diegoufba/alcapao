@@ -23,9 +23,9 @@ html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
 .hud-head { display: flex; align-items: center; gap: 10px; }
 .hud-dot { width: 14px; height: 14px; border-radius: 50%; background: var(--pc); flex: none; }
 .hud-id { font-family: Bungee, sans-serif; font-size: 16px; }
-.hud-device { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.hud-device { font-size: 13px; color: var(--muted); white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .hud-spacer { flex-grow: 1; }
-.hud-status { font-size: 14px; font-weight: 600; white-space: nowrap; color: var(--text); }
+.hud-status { flex-shrink: 0; font-size: 14px; font-weight: 600; white-space: nowrap; color: var(--text); }
 .hud-row { display: flex; align-items: center; gap: 8px; }
 .hud-pushlabel { font-size: 12px; color: var(--muted); width: 74px; }
 .hud-track { flex-grow: 1; height: 6px; border-radius: 3px; background: #2a3157; overflow: hidden; }

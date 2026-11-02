@@ -1,6 +1,7 @@
 import { button, h, portrait, stage, type ScreenCtl } from './dom';
 import { emitUi, KEY_DIRS, type Dir, type PadEvent } from './nav';
 import { DeviceSlots } from '../input/devices';
+import { applyPadChanges, pruneDisconnected } from '../input/connection';
 import { KEY_GROUPS, type DeviceId, type KeyboardInput } from '../input/keyboard';
 import type { GameConfig } from '../core/game';
 import type { PlayerId } from '../core/types';
@@ -37,12 +38,14 @@ export interface JoinScreen extends ScreenCtl {
 
 interface JoinDeps {
   keyboard: KeyboardInput;
+  /** Gamepad está conectado agora? Usado para podar pads mantidos ao reentrar com `keep`. */
+  isPadConnected(d: DeviceId): boolean;
   onStart(config: GameConfig, devices: DeviceSlots): void;
   onBack(): void;
 }
 
 /** `show({ keep: true })` mantém jogadores (jogar de novo); sem isso, começa vazio. Modo e rodadas persistem. */
-export function createJoin({ keyboard, onStart, onBack }: JoinDeps): JoinScreen {
+export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDeps): JoinScreen {
   let devices = new DeviceSlots();
   let mode: Mode = 'points';
   let rounds: Rounds = 12;
@@ -148,6 +151,7 @@ export function createJoin({ keyboard, onStart, onBack }: JoinDeps): JoinScreen 
       const keep = typeof params === 'object' && params !== null && (params as { keep?: boolean }).keep === true;
       if (!keep) devices = new DeviceSlots();
       row = 'mode';
+      if (keep) for (const e of pruneDisconnected(devices, isPadConnected)) emitUi(e);
       el.hidden = false;
       render();
     },
@@ -182,8 +186,9 @@ export function createJoin({ keyboard, onStart, onBack }: JoinDeps): JoinScreen 
       }
     },
     padDisconnected(d) {
-      const p = devices.slotOf(d);
-      if (p) { devices.leave(p); emitUi('saiu'); render(); }
+      const evs = applyPadChanges(devices, { disconnected: [d], reconnected: [] }, 'join');
+      for (const e of evs) emitUi(e);
+      if (evs.length > 0) render();
     },
   };
 }

@@ -82,6 +82,11 @@ export class GamepadInput {
     for (const st of this.pads.values()) st.pendingPush = false;
   }
 
+  /** Pad conhecido e conectado no último poll. */
+  isConnected(id: DeviceId): boolean {
+    return id.startsWith('gp-') && (this.pads.get(Number(id.slice(3)))?.connected ?? false);
+  }
+
   read(id: DeviceId): PlayerInput {
     const idle: PlayerInput = { move: { x: 0, z: 0 }, push: false };
     if (!id.startsWith('gp-')) return idle;

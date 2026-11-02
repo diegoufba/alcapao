@@ -10,6 +10,7 @@ import type { GameConfig } from './core/game';
 import { KeyboardInput, type DeviceId } from './input/keyboard';
 import { GamepadInput, type PadLike } from './input/gamepad';
 import { DeviceSlots } from './input/devices';
+import { applyPadChanges } from './input/connection';
 import { safeStorage } from './storage';
 import { createMatchController } from './match';
 import { createRouter, type Screen } from './ui/router';
@@ -118,6 +119,7 @@ async function runGame(): Promise<void> {
   });
   const join = createJoin({
     keyboard,
+    isPadConnected: (d) => gamepad.isConnected(d),
     onStart: (config, devices) => { router.go('match', { config, devices }); },
     onBack: () => router.go('menu'),
   });
@@ -210,10 +212,7 @@ async function runGame(): Promise<void> {
     const events: PadEvent[] = padNav.poll(pads, now);
     const s = router.current();
     if (s === 'join') for (const d of poll.disconnected) join.padDisconnected(d);
-    if (s === 'match') {
-      for (const d of poll.disconnected) activeDevices?.setConnected(d, false);
-      for (const d of poll.reconnected) activeDevices?.setConnected(d, true);
-    }
+    else if (s === 'match' && activeDevices) for (const e of applyPadChanges(activeDevices, poll, s)) emitUi(e);
 
     if (errorScreen.el.hidden === false) { for (const e of events) nav.pad(e.kind); return; }
     if (s === 'press-start') {
