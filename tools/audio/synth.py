@@ -2,7 +2,7 @@
 """Gera proceduralmente todos os sons do Alçapão (CC0). Uso: synth.py <pasta-de-saída-wav>
 
 Produz <out>/sfx/<id>.wav e <out>/music/<faixa>.wav (44,1 kHz, float, mono).
-A normalização e a conversão para .ogg/.mp3 ficam em tools/audio/convert.sh.
+Pipeline: synth.py <wav> -> normalize.py <wav> <wav-norm> (loudness) -> encode.py <wav-norm> <public/audio> (.ogg/.mp3, exige ffmpeg).
 """
 import sys, os
 import numpy as np

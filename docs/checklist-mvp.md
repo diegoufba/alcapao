@@ -4,7 +4,7 @@ Data: 2026-11-02 · Branch `mvp`.
 
 Legenda: ✅ verificado automaticamente · ✅ verificado via Playwright/headless · ⏳ pendente — Diego (precisa de gente, ouvido, controle ou hardware real).
 
-Ambiente das verificações automáticas: Chromium headless (Playwright 1.63) com SwiftShader (`--use-gl=angle --use-angle=swiftshader`), servidor de desenvolvimento do Vite. Os testes empurraram o estado da partida pelo gancho de DEV `window.matchState` (posicionar jogadores nas plataformas) e usaram F1 + N para pular fases. O gamepad foi simulado sobrescrevendo `navigator.getGamepads` com `page.addInitScript`. Capturas de tela conferidas por amostragem.
+Ambiente das verificações automáticas: Chromium headless (Playwright 1.63) com SwiftShader (`--use-gl=angle --use-angle=swiftshader`), servidor de desenvolvimento do Vite. Os testes empurraram o estado da partida pelo gancho de DEV `window.matchState` (posicionar jogadores nas plataformas) e usaram F1 + N para pular fases. O gamepad foi simulado sobrescrevendo `navigator.getGamepads` com `page.addInitScript`. Uma captura de tela (4 jogadores, fase de pergunta) foi conferida visualmente: HUD, telão, plataformas e bonecos corretos.
 
 ## 1. Build e testes
 
@@ -26,7 +26,8 @@ Ambiente das verificações automáticas: Chromium headless (Playwright 1.63) co
 | 4 jogadores, Pontos (12 rodadas): placar 2.400 / 1.500 / 1.200 / 0 coerente com 100 pts/acerto por dificuldade; ranking correto | ✅ verificado via Playwright/headless |
 | 2 jogadores em Pontos, partida de ponta a ponta | ⏳ pendente — Diego: jogar uma partida em Pontos com 2 pessoas (WASD + Setas) e conferir pontuação e ranking |
 | Partida real, com gente jogando de verdade (correr, empurrar, sentir a jogabilidade) | ⏳ pendente — Diego: `npm run dev`, jogar 1, 2 e 4 jogadores nos dois modos |
-| Morte súbita (empate no topo em Pontos) | ✅ verificado automaticamente: coberta pelos testes de `rules` e `game`; ⏳ Diego: ver na tela uma vez (empate propositalmente no último round) |
+| Morte súbita (empate no topo em Pontos): regras e fim de partida | ✅ verificado automaticamente: testes de `rules` e `game` |
+| Morte súbita vista na tela | ⏳ pendente — Diego: em Pontos, provocar empate no topo (ex.: 2 jogadores acertando as mesmas rodadas) e conferir a rodada de desempate no telão e a música `morte-subita` |
 
 ## 3. Empurrão, perda de foco, gamepad
 
