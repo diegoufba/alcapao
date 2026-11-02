@@ -102,7 +102,7 @@ Se não houver mais perguntas disponíveis:
 - Arena quadrada de **11 × 11 m**, com o centro na origem. As bordas têm parede invisível.
 - 4 plataformas de **4 × 4 m**, centradas em (±2,5; ±2,5). A = trás-esquerda, B = trás-direita, C = frente-esquerda, D = frente-direita. É a mesma disposição 2×2 das alternativas no telão.
 - A faixa neutra em cruz tem 1 m de largura entre as plataformas, mais 0,5 m de margem até a borda.
-- Ponto de partida: os bonecos nascem num quadrado de 4 posições em volta do centro (±0,6; ±0,6), cada um no seu slot.
+- Ponto de partida: os bonecos nascem nos braços da faixa neutra, a 0,9 m do centro — P1 (0; −0,9), P2 (0,9; 0), P3 (0; 0,9), P4 (−0,9; 0) — fora de qualquer plataforma.
 
 ### 3.2 Bonecos
 
@@ -146,7 +146,8 @@ Se não houver mais perguntas disponíveis:
 - **Mundo 3D:** palco escuro com o telão (16 × 6 m, suspenso atrás da arena) e a arena elevada. A câmera é fixa, a ~12 m de altura, inclinada para enquadrar o telão e a arena juntos.
 - **Bonecos:** modelo low-poly chibi único (cabeça grande, boné, sombreamento chapado), com boné e camisa na cor do jogador. As cores são P1 `#4C8DFF`, P2 `#FF8A3D`, P3 `#3DDC97` e P4 `#E06CF5`. No MVP o modelo é montado com primitivas do Three.js, como no canvas, e as animações são procedurais (andar, empurrar, cair e comemorar).
 - **Telão:** textura de canvas 2D desenhada em tempo real, com tema, rodada, timer, pergunta e alternativas, e a resposta destacada na revelação.
-- **HUD em HTML:** uma faixa no rodapé com o cartão de cada jogador (cor, controle, status e barra de recarga do empurrão). No modo Pontos, o cartão mostra a **pontuação** e o "+200" voa para o cartão na revelação. O telão mostra "Rodada 7/12" e o valor da pergunta.- **Paleta e tipografia:** fundo `#0E1120`, destaque `#FFC83D`, títulos em Bungee e texto em Rubik.
+- **HUD em HTML:** uma faixa no rodapé com o cartão de cada jogador (cor, controle, status e barra de recarga do empurrão). No modo Pontos, o cartão mostra a **pontuação** e, na revelação, "(+200)" ao lado dos pontos. O telão mostra "Rodada 7/12" e o valor da pergunta (na morte súbita, "MORTE SÚBITA").
+- **Paleta e tipografia:** fundo `#0E1120`, destaque `#FFC83D`, títulos em Bungee e texto em Rubik.
 ### 5.1 Áudio
 
 **Origem:** as músicas e os efeitos são faixas livres com licença **CC0** (bancos como OpenGameArt e Kenney). Cada arquivo fica listado em `public/audio/CREDITS.md`, com nome, autor, link e licença. O Claude pré-seleciona as faixas, e o **Diego ouve e aprova**, porque o Claude não consegue escutar áudio. Trocar uma faixa é só substituir o arquivo, sem mudar o código.
@@ -187,7 +188,7 @@ interface┘
 - **Transições:** a troca de música é feita com crossfade de 1 s, e a vinheta de vitória corta a música da partida com fade de 0,3 s.
 - **Limite de vozes:** cada efeito tem no máximo 4 cópias simultâneas, e a mais antiga é cortada. Os efeitos repetidos variam o tom em ±5% para não soar robótico.
 - **Opções:** uma tela de **Opções** no menu tem os 4 controles deslizantes e um botão de mudo. A tecla **M** liga e desliga o mudo a qualquer momento. Os ajustes ficam salvos no `localStorage`.
-- **Autoplay:** os navegadores bloqueiam som antes da primeira interação. Por isso a primeira tela é "Aperte qualquer tecla ou botão", e o áudio é ativado nesse toque.
+- **Autoplay:** os navegadores bloqueiam som antes da primeira interação. Por isso a primeira tela é "Aperte qualquer tecla ou botão", e o áudio é ativado nesse toque. Como o navegador não aceita botão de gamepad como ativação, enquanto o som estiver bloqueado aparece o aviso "Clique ou aperte uma tecla para ativar o som".
 - **Formatos:** `.ogg` como principal e `.mp3` como alternativa. Os loops são decodificados em `AudioBuffer` para tocar sem intervalo na emenda.
 
 ---
@@ -295,7 +296,7 @@ type GameEvent =
 | Centro do boneco exatamente na borda da plataforma | A borda pertence à plataforma (≤ meia largura conta como dentro). |
 | Boneco empurrado durante a TRAVA | Não acontece, porque o empurrão só vale em PERGUNTA. |
 | Dois empurram um ao outro no mesmo frame | Os dois empurrões valem e os impulsos se somam. |
-| Aba perde o foco | Pausa automática (timer e física). Volta com qualquer tecla. |
+| Aba perde o foco | Pausa automática (timer e física). Volta com Continuar, Esc ou Start. |
 | JSON ausente ou sem nenhuma pergunta válida | Tela de erro amigável no lugar do menu. |
 | Tema sem perguntas na dificuldade da vez | Usa a dificuldade mais próxima (2.6). |
 | Todas as perguntas usadas | Depende do modo (2.6). |
