@@ -141,4 +141,28 @@ describe('snapshots', () => {
     expect(f.events.map((e) => (e as { phase: string }).phase)).toEqual(['lock', 'reveal']);
     expect(b.advance(1 / 60)!.events).toEqual([]);
   });
+
+  test('relógio atrasado (host travou): pula para o presente e libera os eventos antigos uma vez', () => {
+    const b = createSnapshotBuffer(); // atraso 6
+    b.pushSnap(0, estado(0));
+    b.advance(1 / 60);
+    b.advance(1 / 60); // relógio parado perto do início
+    for (let t = 2; t <= 100; t += 2) b.pushSnap(t, estado(t / 1000));
+    b.pushEvents(10, [ev('lock')]);
+    b.pushEvents(94, [ev('reveal')]);
+    const f = b.advance(1 / 60)!; // newest - clock > 30: relógio vai para 100
+    expect(f.state.players[0].pos.x).toBeCloseTo(94 / 1000); // render = 100 - 6
+    expect(f.events.map((e) => (e as { phase: string }).phase)).toEqual(['lock', 'reveal']);
+    expect(b.advance(1 / 60)!.events).toEqual([]);
+  });
+
+  test('relógio adiantado (clock > newest + 6): volta para o mais novo', () => {
+    const b = createSnapshotBuffer(); // atraso 6
+    for (let t = 0; t <= 600; t += 2) b.pushSnap(t, estado(t / 1000));
+    b.pushEvents(594, [ev('reveal')]);
+    b.pushEvents(700, [ev('reset')]);
+    const f = b.advance(20)!; // relógio iria a 1200
+    expect(f.state.players[0].pos.x).toBeCloseTo(594 / 1000); // render = 594, não 1194
+    expect(f.events.map((e) => (e as { phase: string }).phase)).toEqual(['reveal']);
+  });
 });
