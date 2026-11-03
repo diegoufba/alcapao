@@ -133,3 +133,36 @@ describe('admit', () => {
     expect(admit(lobby(['P1', 'P3']), hello(), BUILD)).toEqual({ ok: true, id: 'P2' });
   });
 });
+
+describe('RemoteInputs: silêncio de input', () => {
+  const passos = (r: RemoteInputs, n: number) => { let o = r.next(); for (let i = 1; i < n; i++) o = r.next(); return o; };
+
+  test('30 passos sem input novo: o move ainda vale', () => {
+    const r = new RemoteInputs();
+    r.set('P2', { x: 1, z: 0 }, 0);
+    expect(passos(r, 30).get('P2')!.move).toEqual({ x: 1, z: 0 });
+  });
+
+  test('31 passos ou mais sem input: o move vira zero', () => {
+    const r = new RemoteInputs();
+    r.set('P2', { x: 1, z: 0 }, 0);
+    expect(passos(r, 31).get('P2')!.move).toEqual(PARADO);
+    expect(passos(r, 100).get('P2')!.move).toEqual(PARADO);
+  });
+
+  test('um input novo volta a valer', () => {
+    const r = new RemoteInputs();
+    r.set('P2', { x: 1, z: 0 }, 0);
+    passos(r, 60);
+    r.set('P2', { x: 0, z: 1 }, 0);
+    expect(r.next().get('P2')!.move).toEqual({ x: 0, z: 1 });
+  });
+
+  test('o empurrão pendente continua valendo mesmo depois do silêncio', () => {
+    const r = new RemoteInputs();
+    r.set('P2', { x: 1, z: 0 }, 0);
+    passos(r, 60);
+    r.set('P2', { x: 1, z: 0 }, 1); // push e input juntos
+    expect(r.next().get('P2')!.push).toBe(true);
+  });
+});

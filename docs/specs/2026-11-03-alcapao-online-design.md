@@ -60,7 +60,7 @@ Menu ─┬─ Jogar ─────────── (offline, como hoje)
   - O host troca o modo e as rodadas com a mesma lógica da tela de entrada offline (`join.ts`), extraída para uma função compartilhada. Os clientes só veem a escolha.
   - O host vê "Começar", que só fica ativo a partir de 2 jogadores. Os clientes veem "Aguardando o host…".
   - Sair do lobby fecha a sala, se for o host, ou libera a vaga, se for cliente.
-- **Partida.** É o HUD e a cena de sempre. Esc abre o overlay online com "Continuar" e "Sair da sala", sem pausar. Perder o foco da janela ou esconder a aba também não pausa.
+- **Partida.** É o HUD e a cena de sempre. Esc abre o overlay online com "Continuar" e "Sair da sala", sem pausar. Perder o foco da janela não pausa. Esconder a aba de um cliente também não pausa; esconder a aba do host congela a partida para todos (o navegador para o `requestAnimationFrame`), e os clientes veem "Aguardando o host…" (ver §10).
 - **Resultados.** O host vê "Jogar de novo", que leva todos ao lobby com as mesmas pessoas, e "Sair", que fecha a sala. Os clientes veem "Aguardando o host…" e "Sair".
 - **Erros.** Eles aparecem no overlay de erro que já existe e voltam ao menu:
   - "Sala não encontrada";
@@ -250,4 +250,11 @@ Decisões que mudaram em relação ao texto acima.
 - **Canal `snap`**: no PeerJS 1.5.5, `reliable: false` só tira a ordem; o canal é criado com `ordered: false` e sem `maxRetransmits`, ou seja, sem ordem e com entrega garantida. Não há bloqueio de cabeça de fila: um snapshot perdido é retransmitido e chega depois, fora de ordem, gastando banda sem segurar os seguintes. O buffer o descarta, porque o `tick` dele é menor ou igual ao do mais novo já recebido (`snapshots.ts`). A melhoria possível é um canal com `maxRetransmits: 0`, que o PeerJS não expõe. É uma limitação conhecida.
 - **PeerJS sob demanda**: `transport.ts` o importa dinamicamente, e o Vite o separa num chunk próprio. Quem só joga offline não baixa a biblioteca.
 - **Link `?sala=`**: depois de usado, o parâmetro é removido da URL (`history.replaceState`). Se a cópia do link falhar (sem `clipboard`, contexto inseguro), o lobby mostra o link para copiar à mão.
+- **Aba do host escondida**: o navegador para o `requestAnimationFrame`, então a simulação do host congela e os snapshots cessam. Não simulamos em segundo plano. O cliente mostra "Aguardando o host…" quando `snapshotAge()` passa de 2 s, e o aviso some quando os snapshots voltam. O host deve manter a aba visível.
+- **Interpolação**: recomeça (sem interpolar) quando a posição salta mais de 2 m entre dois snapshots, e não pelos eventos de respawn.
+- **Entrada local online**: usa todos os dispositivos ao mesmo tempo; o movimento vem do primeiro dispositivo não nulo e o empurrão é o OU de todos.
+- **F1 online**: em produção só mostra FPS/RTT/snap, sem a resposta, e o N é ignorado. Em DEV continua completo, para depurar.
+- **Teto do buffer**: `pushSnap` descarta snapshots com `tick < mais novo - (MAX_BEHIND + delayTicks)`, sempre guardando ao menos um, para o buffer não crescer sem `advance` (aba escondida).
+- **Silêncio de input**: o host zera o `move` de um jogador remoto que não manda `input` há mais de 0,5 s (30 passos de 1/60 s). O empurrão pendente continua valendo, e um input novo volta a valer.
+- **Resultados online**: o botão que a spec chamava de "Sair" é "Menu".
 - **Módulos puros**: além dos previstos em §5.1, todo `src/sim/` (`SimSource`, fonte local e fonte remota) e `net/host-rules.ts` seguem a regra de pureza do ESLint.

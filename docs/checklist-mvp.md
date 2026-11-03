@@ -81,7 +81,7 @@ Spec: [2026-11-03-alcapao-online-design.md](specs/2026-11-03-alcapao-online-desi
 | Entrada recusada: sala cheia (5ª pessoa), partida em andamento ("Partida já começou") e versão diferente | ⏳ pendente — Diego |
 | Cliente fecha a aba no meio: a partida segue para os outros, com o jogador marcado como desconectado | ⏳ pendente — Diego |
 | Host fecha a aba (no lobby e na partida): os clientes voltam ao menu com "A conexão com o host caiu" | ⏳ pendente — Diego |
-| Online não pausa: Esc, perder o foco e aba escondida não param a partida; ao voltar a uma aba de cliente em segundo plano, o jogo salta para o presente | ⏳ pendente — Diego |
+| Online não pausa: Esc, perder o foco e aba de cliente escondida não param a partida (ao voltar, o jogo salta para o presente). Esconder a aba do host congela todos: o cliente vê "Aguardando o host…" e a partida segue quando o host volta | ⏳ pendente — Diego |
 | "Jogar de novo" (só o host) leva todos ao lobby | ⏳ pendente — Diego |
 | Partida entre dois computadores de verdade, em redes diferentes (latência, fluidez, rede que bloqueia por NAT simétrico/CGNAT) | ⏳ pendente — Diego |
 | Em produção (GitHub Pages): o chunk do PeerJS carrega só ao abrir o online e `?sala=` abre a tela Online | ⏳ pendente — Diego: conferir após o deploy |

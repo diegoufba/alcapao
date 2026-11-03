@@ -41,6 +41,8 @@ export interface OnlineFlow {
   backToLobby(): void;
   /** Linha extra do debug (F1) no cliente: RTT e idade do último snapshot. */
   debugText(): string | null;
+  /** Cliente: true quando faz mais de 2 s que não chega snapshot do host. */
+  hostStalled(): boolean;
 }
 
 const STILL: PlayerInput = { move: { x: 0, z: 0 }, push: false };
@@ -156,6 +158,9 @@ export function createOnlineFlow(deps: OnlineDeps): OnlineFlow {
       if (online?.kind !== 'host') return;
       online.session.backToLobby();
       goLobby();
+    },
+    hostStalled() {
+      return online?.kind === 'client' && online.session.snapshotAge() > 2;
     },
     debugText() {
       if (online?.kind !== 'client') return null;

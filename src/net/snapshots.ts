@@ -9,6 +9,8 @@ export interface SnapshotBuffer {
   advance(realDt: number): SimFrame | null;
   /** Segundos (contados pelo `advance`) desde o último snapshot recebido; Infinity antes do primeiro. */
   age(): number;
+  /** Quantos snapshots estão guardados (para teste). */
+  size(): number;
 }
 
 interface Snap { tick: number; state: GameState; themes: string[] }
@@ -35,6 +37,11 @@ export function createSnapshotBuffer(opts: { delayTicks?: number } = {}): Snapsh
       if (themes) lastThemes = [...themes];
       if (!newest) clock = tick;
       snaps.push({ tick, state, themes: [...lastThemes] });
+      // Teto: sem `advance` (aba escondida) o buffer não cresce sem limite; guarda ao menos um.
+      const limite = tick - (MAX_BEHIND + delayTicks);
+      let corte = 0;
+      while (corte < snaps.length - 1 && snaps[corte].tick < limite) corte++;
+      if (corte > 0) snaps = snaps.slice(corte);
       sinceSnap = 0;
     },
 
@@ -85,5 +92,6 @@ export function createSnapshotBuffer(opts: { delayTicks?: number } = {}): Snapsh
     },
 
     age: () => sinceSnap,
+    size: () => snaps.length,
   };
 }

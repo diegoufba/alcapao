@@ -25,7 +25,7 @@ Cada pessoa joga do seu computador, com até 4 por sala. Não há servidor de jo
 
 1. No menu, escolha **Jogar online** e depois **Criar sala**.
 2. No lobby, mande o link (botão de copiar) ou o código de 5 letras para os amigos.
-3. Quem recebeu o link abre a página na tela Online, com o código já preenchido, e só aperta **Entrar**. Com o código solto, escolha **Jogar online**, digite-o em **Entrar com código** e aperte **Entrar**.
+3. Quem recebeu o link abre a página, passa pela tela inicial ("aperte qualquer tecla") e cai na tela Online com o código já preenchido; aí só aperta **Entrar**. O host precisa manter a aba visível: se ela for escondida ou minimizada, a partida congela para todos. Com o código solto, escolha **Jogar online**, digite-o em **Entrar com código** e aperte **Entrar**.
 4. Quando houver 2 ou mais pessoas, quem criou a sala escolhe o modo e aperta **Começar**. Depois de iniciada, a sala não aceita mais ninguém.
 
 Quem cria a sala roda a partida, então se ele sair, todos voltam ao menu. Se um jogador cair, a partida segue para os outros. O online não pausa.
@@ -45,7 +45,7 @@ Algumas redes não conseguem conectar. Com NAT simétrico ou CGNAT (comum em int
 |---|---|
 | M | Liga/desliga o mudo |
 | Esc (ou Start no gamepad) | Pausa e continua |
-| F1 | Modo debug: FPS, resposta certa, zonas e colisões |
+| F1 | Modo debug: FPS, resposta certa, zonas e colisões (online, mostra só FPS e latência, sem a resposta) |
 | N | Em debug, durante a partida: pula a fase |
 
 As teclas são lidas por posição física (`KeyboardEvent.code`), então funcionam no teclado ABNT.

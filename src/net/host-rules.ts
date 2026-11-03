@@ -4,6 +4,8 @@ import type { LobbyInfo } from './protocol';
 
 /** Máximo de empurrões pendentes por jogador remoto: spam ou salto do contador não geram rajada. */
 const MAX_PENDING_PUSHES = 2;
+/** Passos (1/60 s) sem input depois dos quais o host trata o jogador como parado (0,5 s). */
+const MAX_IDLE_STEPS = 30;
 const MAX_PLAYERS = 4;
 const PLAYER_IDS: readonly PlayerId[] = ['P1', 'P2', 'P3', 'P4'];
 
@@ -19,6 +21,7 @@ interface RemoteState {
   move: Vec2;
   lastCount: number;
   pending: number;
+  idle: number;
 }
 
 /** Inputs dos clientes remotos, lidos pelo host a cada passo da simulação. */
@@ -26,7 +29,8 @@ export class RemoteInputs {
   private readonly players = new Map<PlayerId, RemoteState>();
 
   set(id: PlayerId, move: Vec2, pushCount: number): void {
-    const state = this.players.get(id) ?? { move: { x: 0, z: 0 }, lastCount: 0, pending: 0 };
+    const state = this.players.get(id) ?? { move: { x: 0, z: 0 }, lastCount: 0, pending: 0, idle: 0 };
+    state.idle = 0;
     state.move = sanitizeMove(move);
     if (Number.isInteger(pushCount) && pushCount >= 0) {
       const novos = Math.max(0, pushCount - state.lastCount);
@@ -42,7 +46,9 @@ export class RemoteInputs {
     for (const [id, state] of this.players) {
       const push = state.pending > 0;
       if (push) state.pending--;
-      out.set(id, { move: state.move, push });
+      state.idle++;
+      const move = state.idle > MAX_IDLE_STEPS ? { x: 0, z: 0 } : state.move;
+      out.set(id, { move, push });
     }
     return out;
   }

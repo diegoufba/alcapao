@@ -165,4 +165,11 @@ describe('snapshots', () => {
     expect(f.state.players[0].pos.x).toBeCloseTo(594 / 1000); // render = 594, não 1194
     expect(f.events.map((e) => (e as { phase: string }).phase)).toEqual(['reveal']);
   });
+
+  test('sem advance, o buffer guarda um número limitado de snapshots', () => {
+    const b = createSnapshotBuffer({ delayTicks: 6 });
+    for (let t = 0; t < 1000; t++) b.pushSnap(t, estado(0));
+    expect(b.size()).toBeLessThanOrEqual(30 + 6 + 2);
+    expect(b.size()).toBeGreaterThanOrEqual(1);
+  });
 });

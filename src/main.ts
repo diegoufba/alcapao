@@ -66,7 +66,10 @@ async function runGame(): Promise<void> {
   fpsEl.className = 'fps';
   const ui = document.createElement('div');
   ui.id = 'ui';
-  app.replaceChildren(canvas, hudRoot, fpsEl, ui);
+  const waitEl = document.createElement('div');
+  waitEl.className = 'wait-host';
+  waitEl.textContent = 'Aguardando o host…';
+  app.replaceChildren(canvas, hudRoot, fpsEl, waitEl, ui);
 
   await Promise.all([document.fonts.load('40px "Titan One"'), document.fonts.load('700 40px Nunito'), document.fonts.load('800 40px Nunito')]);
   const { renderer, scene, camera, resize, update: updateScene } = createScene(canvas);
@@ -227,6 +230,7 @@ async function runGame(): Promise<void> {
       matchOnline = isOnline === true;
       overTimer = -1;
       match.start(source, input);
+      applyDebug();
       nav.setActive(null);
     } else if (from === 'match') {
       resumeMatch(); // o overlay online pode estar aberto quando a partida acaba
@@ -252,14 +256,18 @@ async function runGame(): Promise<void> {
     router.go('online', { code });
   }
 
+  /** Online em produção não revela a resposta nem pula fase: o F1 só mostra FPS/RTT. */
+  function debugAllowed(): boolean { return !matchOnline || import.meta.env.DEV; }
+  function applyDebug(): void { match.setDebug(fpsEl.classList.contains('is-on') && debugAllowed()); }
+
   // --- teclado ---------------------------------------------------------------
   window.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const s = router.current();
     const typing = e.target instanceof HTMLInputElement && e.target.type === 'text'; // campo do código da sala
-    if (e.code === 'F1') { e.preventDefault(); const on = !fpsEl.classList.contains('is-on'); fpsEl.classList.toggle('is-on', on); match.setDebug(on); return; }
+    if (e.code === 'F1') { e.preventDefault(); const on = !fpsEl.classList.contains('is-on'); fpsEl.classList.toggle('is-on', on); applyDebug(); return; }
     if (e.code === 'KeyM' && !typing) { if (!e.repeat) { applyAudioSettings({ ...audioSettings, muted: !audioSettings.muted }); options.sync(); } return; }
-    if (e.code === 'KeyN' && fpsEl.classList.contains('is-on') && s === 'match') { match.skipPhase(); return; }
+    if (e.code === 'KeyN' && fpsEl.classList.contains('is-on') && s === 'match' && debugAllowed()) { match.skipPhase(); return; }
     if (errorScreen.el.hidden === false) { if (nav.key(e.code)) e.preventDefault(); return; }
 
     if (s === 'press-start') {
@@ -363,6 +371,7 @@ async function runGame(): Promise<void> {
         }
       }
     }
+    waitEl.classList.toggle('is-on', router.current() === 'match' && matchOnline && online.hostStalled());
     if (fpsEl.classList.contains('is-on')) fpsEl.textContent = fpsText(frames.length);
     renderer.render(scene, camera);
   });
