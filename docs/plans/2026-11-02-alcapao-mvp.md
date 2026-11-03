@@ -18,7 +18,7 @@
 - Valores da spec, sem arredondar:
   - **Tempos das fases:** ROLETA 3 s · TRAVA 0,5 s · REVELAÇÃO 3 s · RESET 1,5 s · PERGUNTA 15/12/10 s (dificuldade 1/2/3).
   - **Pontos:** 100/200/300 por dificuldade 1/2/3.
-  - **Boneco:** raio 0,4 m · velocidade 4 m/s · aceleração ~0,1 s.
+  - **Boneco:** raio 0,4 m · velocidade 5 m/s · aceleração ~0,1 s.
   - **Empurrão:** alcance 1,2 m · cone ±45° · deslocamento 1,5 m em 0,35 s · quem empurra fica parado 0,3 s · recarga 2 s.
 - **Cores dos jogadores:** P1 `#4C8DFF`, P2 `#FF8A3D`, P3 `#3DDC97`, P4 `#E06CF5`.
 - **Interface:** fundo `#0E1120`, destaque `#FFC83D`, fontes Bungee (títulos) e Rubik (texto), embutidas via `@fontsource`. Todo texto visível em **pt-BR**.

@@ -107,7 +107,7 @@ Se não houver mais perguntas disponíveis:
 ### 3.2 Bonecos
 
 - Corpo de colisão: círculo de raio **0,4 m** no plano XZ.
-- Velocidade máxima de **4 m/s**, com aceleração e frenagem curtas (~0,1 s) para não parecer "patinação".
+- Velocidade máxima de **5 m/s**, com aceleração e frenagem curtas (~0,1 s) para não parecer "patinação".
 - O boneco gira para a direção em que se move.
 - Os bonecos não se atravessam: a sobreposição entre círculos é resolvida separando os dois igualmente.
 
