@@ -112,8 +112,12 @@ body[data-screen="press-start"] #app canvas { filter: blur(5px) saturate(1.1) br
 
 /* menu */
 .screen-menu { background: radial-gradient(ellipse 105px 28px at 185px 88px, #fff 98%, transparent), radial-gradient(ellipse 50px 36px at 180px 68px, #fff 98%, transparent), radial-gradient(ellipse 95px 25px at calc(100% - 185px) 115px, #fff 98%, transparent), radial-gradient(ellipse 42px 30px at calc(100% - 190px) 96px, #fff 98%, transparent), var(--sky); }
-.screen-menu .stage { gap: 12px; }
-.screen-menu .menu-list { gap: 11px; } /* cinco botões: mais justos para a dica não descer demais */
+.screen-menu .stage { gap: 12px; padding-bottom: 60px; } /* centraliza acima do chão listrado: a dica não encosta na linha */
+/* dois botões principais (local e online) e uma linha de três secundários com ícone */
+.btn-online { gap: 12px; height: 58px; border-radius: 18px; background: var(--yellow); color: var(--ink); font-family: var(--title) !important; font-size: 24px; font-weight: 400; box-shadow: 6px 6px 0 var(--ink); }
+.menu-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 4px; }
+.menu-list .btn-tile { flex-direction: column; gap: 4px; height: 80px; font-size: 15px; }
+.btn svg { flex-shrink: 0; }
 .menu-chars { display: flex; gap: 4px; margin-bottom: -60px; }
 .menu-chars img { width: 120px; height: 144px; display: block; }
 .menu-title { display: flex; flex-direction: column; align-items: center; gap: 12px; }
