@@ -129,7 +129,8 @@ async function runGame(): Promise<void> {
     if (actx && actx.state === 'suspended') void actx.resume().then(syncAudioHint, () => undefined);
     syncAudioHint();
   }
-  for (const type of ['keydown', 'pointerdown'] as const) window.addEventListener(type, wakeAudio, { capture: true });
+  // `pointerup` também: no toque, o `pointerdown` não dá ativação de usuário e o AudioContext não sai do suspenso
+  for (const type of ['keydown', 'pointerdown', 'pointerup'] as const) window.addEventListener(type, wakeAudio, { capture: true });
   syncAudioHint();
   const touchMode = createTouchMode(window, document.body);
   const touch = new TouchInput(); // uma instância só: offline (dispositivo `touch`) e online (jogador local)
@@ -268,11 +269,14 @@ async function runGame(): Promise<void> {
       const { source, input, devices, online: isOnline } = p as { source: SimSource; input: MatchInput; devices?: DeviceSlots; online?: boolean };
       activeDevices = devices ?? null;
       matchOnline = isOnline === true;
+      // controles de toque: no offline, só se o P1 for o `touch` (senão ficariam mortos); no online, sempre
+      document.body.classList.toggle('touch-local', matchOnline || activeDevices?.deviceOf('P1') === 'touch');
       overTimer = -1;
       match.start(source, input);
       applyDebug();
       nav.setActive(null);
     } else if (from === 'match') {
+      document.body.classList.remove('touch-local');
       touchControls.reset();
       resumeMatch(); // o overlay online pode estar aberto quando a partida acaba
       match.stop();

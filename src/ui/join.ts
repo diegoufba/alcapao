@@ -3,7 +3,7 @@ import { emitUi, KEY_DIRS, type Dir, type PadEvent } from './nav';
 import { createModePicker } from './mode-picker';
 import { DeviceSlots } from '../input/devices';
 import { applyPadChanges, pruneDisconnected } from '../input/connection';
-import { canJoin, padLeaveAction } from './join-logic';
+import { joinAction, padLeaveAction } from './join-logic';
 import { KEY_GROUPS, type DeviceId, type KeyboardInput } from '../input/keyboard';
 import type { GameConfig } from '../core/game';
 import type { PlayerId } from '../core/types';
@@ -48,6 +48,7 @@ export function createJoin({ keyboard, touchMode, isPadConnected, onStart, onBac
   const cards = h('div', 'slots');
   const picker = createModePicker(() => {});
   const start = button('btn btn-accent', 'COMEÇAR', () => tryStart());
+  const back = button('btn touch-only', 'VOLTAR', () => onBack()); // no toque não há Esc / B
 
   const lead = h('p', 'lead', '');
   const hint = h('span', 'hint', '');
@@ -56,12 +57,13 @@ export function createJoin({ keyboard, touchMode, isPadConnected, onStart, onBac
       lead),
     cards,
     picker.el,
-    h('div', 'join-foot', '', start, hint));
+    h('div', 'join-foot', '', start, back, hint));
 
   function render(): void {
-    const touchOn = touchMode.isOn();
-    lead.textContent = touchOn ? 'Você joga sozinho no celular' : 'Aperte qualquer tecla do seu grupo ou um botão do controle para entrar';
-    hint.textContent = touchOn ? 'Toque em COMEÇAR' : 'P1 aperta Espaço ou Start · Esc / B volta ao menu';
+    // um jogador de toque não divide a tela; os textos seguem quem está na sala, não o modo toque
+    const hasTouch = devices.slotOf('touch') !== null;
+    lead.textContent = hasTouch ? 'Você joga sozinho no celular' : 'Aperte qualquer tecla do seu grupo ou um botão do controle para entrar';
+    hint.textContent = touchMode.isOn() ? 'Toque em COMEÇAR' : 'P1 aperta Espaço ou Start · Esc / B volta ao menu';
     cards.replaceChildren(...SLOTS.map((id) => {
       const d = devices.deviceOf(id);
       const c = h('div', d ? 'slot is-joined' : 'slot');
@@ -72,7 +74,7 @@ export function createJoin({ keyboard, touchMode, isPadConnected, onStart, onBac
         c.append(img, h('span', 'slot-title', `${id} · ${info.dev}`), h('span', 'slot-detail', info.keys), h('span', 'badge', 'PRONTO'));
       } else {
         c.append(img, h('span', 'slot-title is-free', 'Vaga livre'),
-          h('span', 'slot-detail', touchOn ? 'Só 1 jogador no celular' : 'WASD · Setas · IJKL\nou qualquer controle'));
+          h('span', 'slot-detail', hasTouch ? 'Só 1 jogador no celular' : 'WASD · Setas · IJKL\nou qualquer controle'));
       }
       return c;
     }));
@@ -82,7 +84,9 @@ export function createJoin({ keyboard, touchMode, isPadConnected, onStart, onBac
 
   function tryJoin(d: DeviceId): boolean {
     if (devices.slotOf(d)) return false;
-    if (!canJoin(devices.players().length, d, touchMode.isOn())) return false;
+    const action = joinAction(devices.players().length, devices.deviceOf('P1'), d);
+    if (action === 'refuse') return false;
+    if (action === 'replace-p1') devices.leave('P1'); // o P1 de toque automático dá lugar ao teclado/gamepad usado
     if (!devices.join(d)) return false;
     emitUi('entrou');
     render();

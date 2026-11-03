@@ -108,6 +108,12 @@ body[data-screen="press-start"] #app canvas { filter: blur(5px) saturate(1.1) br
 }
 @keyframes ps-pulse { 50% { transform: scale(1.04); } }
 .ps-legend { display: flex; align-items: center; gap: 14px; font-size: 15px; font-weight: 800; color: var(--ink); }
+.ps-cta-touch { display: none; }
+/* celular: sem tecla nem botão para apertar */
+@media (pointer: coarse) {
+  .ps-cta-keys, .ps-legend .ps-legend-pad { display: none; }
+  .ps-cta-touch { display: inline; }
+}
 .ps-legend span { display: flex; align-items: center; gap: 8px; background: var(--card); border: 3px solid var(--ink); border-radius: 12px; padding: 6px 12px; }
 .ps-version { position: absolute; right: 24px; bottom: 18px; font-size: 13px; font-weight: 800; color: var(--ink); }
 
@@ -280,9 +286,13 @@ body[data-screen="press-start"] #app canvas { filter: blur(5px) saturate(1.1) br
 body[data-audio="locked"] .audio-hint { display: block; }
 
 /* ---------- modo toque (body.is-touch): controles na partida e HUD no topo ---------- */
+/* botões de voltar/sair que substituem o Esc / B no toque; atalhos de teclado e gamepad somem */
+body:not(.is-touch) .touch-only { display: none; }
+body.is-touch .no-touch { display: none; }
 /* tamanhos em px de tela de verdade (alvos de toque), sem --ui-scale */
 .touch-controls { display: none; position: fixed; inset: 0; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; pointer-events: none; }
-body.is-touch[data-screen="match"] .touch-controls { display: block; }
+/* body.touch-local: na partida, o jogador deste aparelho joga por toque (offline: P1 `touch`; online: sempre) */
+body.is-touch.touch-local[data-screen="match"] .touch-controls { display: block; }
 .tc-stick-zone { position: fixed; left: 0; top: 0; bottom: 0; width: 50%; pointer-events: auto; touch-action: none; }
 .tc-stick-base {
   position: fixed; left: 0; top: 0; width: 120px; height: 120px; margin: -60px 0 0 -60px; box-sizing: border-box; border-radius: 50%;

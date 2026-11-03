@@ -8,7 +8,7 @@ export function createPause(nav: Nav, onResume: () => void, onQuit: () => void):
   const title = h('h1', 'title');
   const lead = h('p', 'lead', 'A partida online não pausa: os outros continuam jogando.');
   const quit = button('btn btn-alt', '', onQuit);
-  const hint = h('p', 'hint');
+  const hint = h('p', 'hint no-touch'); // atalhos de teclado e gamepad: somem no toque
   const { el } = stage('pause', title, lead, h('div', 'menu-list', '', resume, quit), hint);
   return {
     el,

@@ -50,7 +50,8 @@ export function createOnline({ nav, onCreate, onJoin, onBack }: OnlineDeps): Onl
         input,
         enter)),
     status,
-    h('p', 'hint', 'Esc / B volta ao menu'));
+    button('btn touch-only', 'VOLTAR', () => onBack()), // no toque não há Esc / B
+    h('p', 'hint no-touch', 'Esc / B volta ao menu'));
 
   function render(): void {
     create.disabled = busy;
