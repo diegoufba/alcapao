@@ -43,6 +43,11 @@ const params = new URLSearchParams(location.search);
 const showcase = import.meta.env.DEV ? params.get('showcase') : null; // vitrine só em desenvolvimento
 
 const RESULTS_DELAY = 1.2; // s entre o último RESET e a tela de resultados
+/**
+ * ms depois do `pointerup` em que o `click` que sai da press-start ainda é engolido. No Chrome Android e no
+ * Safari iOS o `click` de compatibilidade do toque chega como evento separado, logo depois do `pointerup`.
+ */
+const SWALLOW_CLICK_MS = 400;
 const MODIFIER_CODES = new Set(['ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight', 'CapsLock']);
 
 /** Carrega e valida o banco; devolve a mensagem de erro (pt-BR) quando não há perguntas utilizáveis. */
@@ -304,9 +309,11 @@ async function runGame(): Promise<void> {
   // tela cheia e paisagem, mas só no `pointerup`: no toque, a ativação de usuário (exigida pelo `requestFullscreen`)
   // só vem no `pointerup`/`touchend`/`click`, não no `pointerdown`.
   // O `click` que o gesto gera logo depois é engolido, para não acionar o botão do menu que aparece embaixo do
-  // dedo. A trava vale até o primeiro `click` ou até o tick seguinte ao `pointerup` (toque longo não gera `click`,
-  // e um `.click()` do gamepad depois disso não pode ser comido); cai também em `pointercancel`, `pointerdown` e tecla.
+  // dedo. A trava cai no primeiro `click`, e só engole se ele vier até SWALLOW_CLICK_MS depois do `pointerup` (pelo
+  // `timeStamp`): toque longo não gera `click`, e um `.click()` do gamepad bem depois não pode ser comido. Cai também
+  // em `pointercancel`, no próximo `pointerdown` e em tecla.
   let swallowClick = false;
+  let swallowUntil = 0; // 0 = o `pointerup` ainda não chegou
   let landscapePointer: number | null = null; // toque que saiu da press-start e ainda não soltou
   for (const type of ['pointerdown', 'keydown'] as const) window.addEventListener(type, () => { swallowClick = false; }, { capture: true });
   window.addEventListener('pointercancel', (e) => {
@@ -315,7 +322,7 @@ async function runGame(): Promise<void> {
   }, { capture: true });
   window.addEventListener('pointerup', (e) => {
     if (e.pointerId === landscapePointer) { landscapePointer = null; void goLandscape(); }
-    if (swallowClick) setTimeout(() => { swallowClick = false; }, 0);
+    if (swallowClick) swallowUntil = e.timeStamp + SWALLOW_CLICK_MS;
   }, { capture: true });
   window.addEventListener('pointerdown', (e) => {
     if (router.current() !== 'press-start' || errorScreen.el.hidden === false || !e.isPrimary) return;
@@ -323,10 +330,13 @@ async function runGame(): Promise<void> {
     if (!isTouch && e.button !== 0) return;
     if (isTouch) landscapePointer = e.pointerId;
     swallowClick = true;
+    swallowUntil = 0;
     leavePressStart(); // wakeAudio já roda no pointerdown em captura; o emitUi('confirmar') está aqui dentro
   });
   window.addEventListener('click', (e) => {
-    if (swallowClick) { swallowClick = false; e.preventDefault(); e.stopPropagation(); }
+    if (!swallowClick) return;
+    swallowClick = false;
+    if (swallowUntil === 0 || e.timeStamp <= swallowUntil) { e.preventDefault(); e.stopPropagation(); }
   }, { capture: true });
 
   /** Online em produção não revela a resposta nem pula fase: o F1 só mostra FPS/RTT. */
