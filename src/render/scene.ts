@@ -88,7 +88,7 @@ void main() {
 `;
 
 /** Tufos de grama espalhados pelo campo, num único InstancedMesh com vertex shader de vento. */
-function grass(scene: THREE.Scene, uTime: { value: number }): void {
+function grass(scene: THREE.Scene, uTime: { value: number }): THREE.MeshLambertMaterial {
   const geo = new THREE.ConeGeometry(0.12, 0.45, 4);
   const mat = flatMaterial('#5DB847');
   mat.onBeforeCompile = (shader) => {
@@ -115,6 +115,7 @@ function grass(scene: THREE.Scene, uTime: { value: number }): void {
     tufts.setMatrixAt(n++, m);
   }
   scene.add(tufts);
+  return mat;
 }
 
 export function createScene(canvas: HTMLCanvasElement): {
@@ -167,11 +168,19 @@ export function createScene(canvas: HTMLCanvasElement): {
   Object.assign(sun.shadow.camera, { left: -9, right: 9, top: 9, bottom: -9, near: 1, far: 50 });
   scene.add(sun);
 
-  const ground = new THREE.Mesh(new THREE.BoxGeometry(160, 1, 120), flatMaterial('#7CC85A'));
+  const groundMat = flatMaterial('#7CC85A');
+  const ground = new THREE.Mesh(new THREE.BoxGeometry(160, 1, 120), groundMat);
   ground.position.y = -1.6;
   ground.receiveShadow = true;
   scene.add(ground);
-  grass(scene, uTime);
+  const grassMat = grass(scene, uTime);
+
+  // Morte súbita: além do céu, o campo e a luz viram fim de tarde (o céu sozinho quase não entra no quadro).
+  const dusk = [
+    { color: sun.color, day: new THREE.Color('#FFF6E6'), sd: new THREE.Color('#FF8A5C') },
+    { color: groundMat.color, day: new THREE.Color('#7CC85A'), sd: new THREE.Color('#8A5E62') },
+    { color: grassMat.color, day: new THREE.Color('#5DB847'), sd: new THREE.Color('#6E4458') },
+  ];
   for (const [x, y, z, s] of [[-17, 13, -26, 1.6], [-8, 16.5, -30, 1.3], [12, 15, -28, 1.5], [21, 11.5, -24, 1.2], [-24, 9, -20, 1.1]] as const) {
     scene.add(cloud(x, y, z, s));
   }
@@ -197,6 +206,9 @@ export function createScene(canvas: HTMLCanvasElement): {
     fog.color.copy(fogColorDay).lerp(fogColorSd, uSuddenDeath.value);
     hemi.color.copy(hemiSkyDay).lerp(hemiSkySd, uSuddenDeath.value);
     hemi.groundColor.copy(hemiGroundDay).lerp(hemiGroundSd, uSuddenDeath.value);
+    for (const d of dusk) d.color.copy(d.day).lerp(d.sd, uSuddenDeath.value);
+    sun.intensity = 2.2 - 0.6 * uSuddenDeath.value;
+    fog.near = 34 - 16 * uSuddenDeath.value;
   }
 
   return { renderer, scene, camera, resize, update };
