@@ -19,6 +19,19 @@ npm test           # testes (Vitest)
 npm run lint
 ```
 
+## Jogar online
+
+Cada pessoa joga do seu computador, com até 4 por sala. Não há servidor de jogo: os computadores se conectam direto (WebRTC).
+
+1. No menu, escolha **Jogar online** e depois **Criar sala**.
+2. No lobby, mande o link (botão de copiar) ou o código de 5 letras para os amigos.
+3. Quem recebeu o link abre a página na tela Online, com o código já preenchido, e só aperta **Entrar**. Com o código solto, escolha **Jogar online**, digite-o em **Entrar com código** e aperte **Entrar**.
+4. Quando houver 2 ou mais pessoas, quem criou a sala escolhe o modo e aperta **Começar**. Depois de iniciada, a sala não aceita mais ninguém.
+
+Quem cria a sala roda a partida, então se ele sair, todos voltam ao menu. Se um jogador cair, a partida segue para os outros. O online não pausa.
+
+Algumas redes não conseguem conectar. Com NAT simétrico ou CGNAT (comum em internet móvel e em alguns provedores) a ligação direta falha, e não há servidor TURN para contornar. Se der erro de rede, tente outra rede ou peça para outra pessoa criar a sala.
+
 ## Controles
 
 | Dispositivo | Mover | Empurrar |

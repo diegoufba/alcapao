@@ -1,6 +1,6 @@
 # Alçapão: especificação do modo online
 
-**Data:** 03/11/2026 · **Status:** em revisão · **Base:** [especificação do MVP](2026-11-02-alcapao-design.md)
+**Data:** 03/11/2026 · **Status:** implementado · **Base:** [especificação do MVP](2026-11-02-alcapao-design.md)
 
 ---
 
@@ -236,3 +236,18 @@ Para testar no mesmo PC, basta abrir duas abas, porque o PeerJS funciona entre a
 - Reconexão de cliente e migração de host.
 - Vários jogadores no mesmo PC dentro de uma sala online.
 - Servidor TURN, matchmaking público, salas abertas e chat.
+
+---
+
+## 10. Notas da implementação
+
+Decisões que mudaram em relação ao texto acima.
+
+- **`hello.build`** é `bankHash(bank)`, um FNV-1a dos ids das perguntas (na ordem do banco). Host e cliente com bancos diferentes recebem `rejected 'version'`, além da checagem de `PROTOCOL_VERSION`.
+- **`ping`/`pong`**: mensagens novas no `ctl`. O cliente manda `ping` com o relógio local (`at`) a cada 1 s, o host devolve `pong`, e o RTT aparece no debug (F1).
+- **Queda por silêncio**: o WebRTC não avisa de forma confiável quando a aba do outro lado fecha. Por isso, nos dois lados, `SILENCE_TIMEOUT_S = 8` s sem receber nada fecha a conexão (o host a cada cliente, o cliente o host). Além disso, `main.ts` chama `close()` no `pagehide`.
+- **Contador de empurrões**: o `pushCount` do cliente vale pela conexão inteira e nunca é zerado. No host, o `lastCount` é por conexão, e o `start` zera só os empurrões ainda pendentes. No máximo 2 ficam pendentes, e um `pushCount` atrasado não rebaixa a contagem.
+- **Canal `snap`**: no PeerJS 1.5.5, `reliable: false` só tira a ordem; o canal continua retransmitindo. Uma perda de pacotes ainda atrasa os seguintes. É uma limitação conhecida.
+- **PeerJS sob demanda**: `transport.ts` o importa dinamicamente, e o Vite o separa num chunk próprio. Quem só joga offline não baixa a biblioteca.
+- **Link `?sala=`**: depois de usado, o parâmetro é removido da URL (`history.replaceState`). Se a cópia do link falhar (sem `clipboard`, contexto inseguro), o lobby mostra o link para copiar à mão.
+- **Módulos puros**: além dos previstos em §5.1, todo `src/sim/` (`SimSource`, fonte local e fonte remota) e `net/host-rules.ts` seguem a regra de pureza do ESLint.

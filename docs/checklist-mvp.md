@@ -70,6 +70,22 @@ Ambiente das verificações automáticas: Chromium headless (Playwright 1.63) co
 - ⏳ Tarefa 6 (banco de perguntas): aprovação do Diego.
 - ⏳ Tarefa 14 (áudio): aprovação do Diego.
 
+## 8. Modo online
+
+Spec: [2026-11-03-alcapao-online-design.md](specs/2026-11-03-alcapao-online-design.md). Os testes de rede só rodaram com duas abas no mesmo PC (`?online=host` e `?online=join&sala=`).
+
+| Item | Resultado |
+|---|---|
+| Código de sala, protocolo (validação de mensagens hostis), buffer de snapshots, regras do host e fontes de simulação | ✅ verificado automaticamente: testes de `net` e `sim` |
+| Criar sala, entrar por código ou link `?sala=` e jogar uma partida até a tela final, entre duas abas | ⏳ pendente — Diego: conferir os dois modos, o telão, as quedas, os empurrões e o áudio iguais nas duas abas |
+| Entrada recusada: sala cheia (5ª pessoa), partida em andamento ("Partida já começou") e versão diferente | ⏳ pendente — Diego |
+| Cliente fecha a aba no meio: a partida segue para os outros, com o jogador marcado como desconectado | ⏳ pendente — Diego |
+| Host fecha a aba (no lobby e na partida): os clientes voltam ao menu com "A conexão com o host caiu" | ⏳ pendente — Diego |
+| Online não pausa: Esc, perder o foco e aba escondida não param a partida; ao voltar a uma aba de cliente em segundo plano, o jogo salta para o presente | ⏳ pendente — Diego |
+| "Jogar de novo" (só o host) leva todos ao lobby | ⏳ pendente — Diego |
+| Partida entre dois computadores de verdade, em redes diferentes (latência, fluidez, rede que bloqueia por NAT simétrico/CGNAT) | ⏳ pendente — Diego |
+| Em produção (GitHub Pages): o chunk do PeerJS carrega só ao abrir o online e `?sala=` abre a tela Online | ⏳ pendente — Diego: conferir após o deploy |
+
 ## Observações
 
 - Nenhum erro ou aviso no console em nenhum dos cenários automatizados.
