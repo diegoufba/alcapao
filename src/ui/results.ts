@@ -8,6 +8,9 @@ import { PLAYER_COLORS } from '../render/scene';
 
 interface ResultsDeps { nav: Nav; storage: StorageLike; onAgain(): void; onMenu(): void }
 
+/** Parâmetros da tela: o resultado e, no online, o papel de quem vê (o cliente não tem "Jogar de novo"). */
+export interface ResultsParams extends MatchResult { online?: 'host' | 'client' }
+
 const plural = (n: number, one: string, many: string): string => (n === 1 ? one : many);
 
 /** Vencedor da morte súbita: 1º com a mesma pontuação do 2º (o desempate vem do ranking, não dos pontos). */
@@ -66,8 +69,9 @@ function multi(res: MatchResult): HTMLElement[] {
 export function createResults({ nav, storage, onAgain, onMenu }: ResultsDeps): ScreenCtl {
   const body = h('div', 'results-body');
   const again = button('btn btn-accent', 'JOGAR DE NOVO', onAgain);
-  again.dataset.autofocus = '';
-  const { el, stage: st } = stage('results', body, h('div', 'foot', '', again, button('btn btn-alt', 'Menu', onMenu)));
+  const waiting = h('span', 'waiting', 'Aguardando o host…');
+  const menu = button('btn btn-alt', 'Menu', onMenu);
+  const { el, stage: st } = stage('results', body, h('div', 'foot', '', again, waiting, menu));
 
   function solo(res: MatchResult): HTMLElement[] {
     const mine = res.ranking[0];
@@ -100,8 +104,14 @@ export function createResults({ nav, storage, onAgain, onMenu }: ResultsDeps): S
   return {
     el,
     show(params) {
-      const res = params as MatchResult;
+      const res = params as ResultsParams;
       body.replaceChildren(...(res.players === 1 ? solo(res) : multi(res)));
+      const client = res.online === 'client';
+      again.hidden = client;
+      waiting.hidden = !client;
+      delete again.dataset.autofocus;
+      delete menu.dataset.autofocus;
+      (client ? menu : again).dataset.autofocus = '';
       el.hidden = false;
       nav.setActive(st, { onBack: onMenu });
     },

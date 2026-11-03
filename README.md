@@ -19,6 +19,31 @@ npm test           # testes (Vitest)
 npm run lint
 ```
 
+## Jogar online
+
+Cada pessoa joga do seu computador, com até 4 por sala. Não há servidor de jogo: os computadores se conectam direto (WebRTC).
+
+1. No menu, escolha **Jogar online** e depois **Criar sala**.
+2. No lobby, mande o link (botão de copiar) ou o código de 5 letras para os amigos.
+3. Quem recebeu o link abre a página, passa pela tela inicial ("aperte qualquer tecla") e cai na tela Online com o código já preenchido; aí só aperta **Entrar**. O host precisa manter a aba visível: se ela for escondida ou minimizada, a partida congela para todos. Com o código solto, escolha **Jogar online**, digite-o em **Entrar com código** e aperte **Entrar**.
+4. Quando houver 2 ou mais pessoas, quem criou a sala escolhe o modo e aperta **Começar**. Depois de iniciada, a sala não aceita mais ninguém.
+
+Quem cria a sala roda a partida, então se ele sair, todos voltam ao menu. Se um jogador cair, a partida segue para os outros. O online não pausa.
+
+Algumas redes não conseguem conectar. Com NAT simétrico ou CGNAT (comum em internet móvel e em alguns provedores) a ligação direta falha, e não há servidor TURN para contornar. Se der erro de rede, tente outra rede ou peça para outra pessoa criar a sala.
+
+## Jogar no celular
+
+O jogo funciona no navegador do celular, **só na horizontal** (em pé, aparece o aviso "Gire o celular"). O primeiro toque tira o jogo da tela inicial e tenta ativar a tela cheia.
+
+- **Offline:** só 1 jogador. Na tela de entrada, toque em **COMEÇAR**.
+- **Online:** cada celular é um jogador. Abra o link da sala, ou digite o código na tela Online.
+- **Na partida:** o analógico aparece onde o polegar encosta, na metade esquerda da tela. O botão **EMPURRAR** fica no canto inferior direito, e o botão de pausa no canto superior direito.
+
+Se encostar numa tecla ou num botão de gamepad, o jogo volta aos controles do PC.
+
+Para testar num celular de verdade, com o PC e o celular na mesma rede Wi-Fi, rode `npm run dev -- --host` e abra no celular o endereço "Network" que o Vite mostrar.
+
 ## Controles
 
 | Dispositivo | Mover | Empurrar |
@@ -32,7 +57,7 @@ npm run lint
 |---|---|
 | M | Liga/desliga o mudo |
 | Esc (ou Start no gamepad) | Pausa e continua |
-| F1 | Modo debug: FPS, resposta certa, zonas e colisões |
+| F1 | Modo debug: FPS, resposta certa, zonas e colisões (online, mostra só FPS e latência, sem a resposta) |
 | N | Em debug, durante a partida: pula a fase |
 
 As teclas são lidas por posição física (`KeyboardEvent.code`), então funcionam no teclado ABNT.

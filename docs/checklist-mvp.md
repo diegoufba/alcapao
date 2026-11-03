@@ -70,6 +70,37 @@ Ambiente das verificações automáticas: Chromium headless (Playwright 1.63) co
 - ⏳ Tarefa 6 (banco de perguntas): aprovação do Diego.
 - ⏳ Tarefa 14 (áudio): aprovação do Diego.
 
+## 8. Modo online
+
+Spec: [2026-11-03-alcapao-online-design.md](specs/2026-11-03-alcapao-online-design.md). Os testes de rede só rodaram com duas abas no mesmo PC (`?online=host` e `?online=join&sala=`).
+
+| Item | Resultado |
+|---|---|
+| Código de sala, protocolo (validação de mensagens hostis), buffer de snapshots, regras do host e fontes de simulação | ✅ verificado automaticamente: testes de `net` e `sim` |
+| Criar sala, entrar por código ou link `?sala=` e jogar uma partida até a tela final, entre duas abas | ⏳ pendente — Diego: conferir os dois modos, o telão, as quedas, os empurrões e o áudio iguais nas duas abas |
+| Entrada recusada: sala cheia (5ª pessoa), partida em andamento ("Partida já começou") e versão diferente | ⏳ pendente — Diego |
+| Cliente fecha a aba no meio: a partida segue para os outros, com o jogador marcado como desconectado | ⏳ pendente — Diego |
+| Host fecha a aba (no lobby e na partida): os clientes voltam ao menu com "A conexão com o host caiu" | ⏳ pendente — Diego |
+| Online não pausa: Esc, perder o foco e aba de cliente escondida não param a partida (ao voltar, o jogo salta para o presente). Esconder a aba do host congela todos: o cliente vê "Aguardando o host…" e a partida segue quando o host volta | ⏳ pendente — Diego |
+| "Jogar de novo" (só o host) leva todos ao lobby | ⏳ pendente — Diego |
+| Partida entre dois computadores de verdade, em redes diferentes (latência, fluidez, rede que bloqueia por NAT simétrico/CGNAT) | ⏳ pendente — Diego |
+| Em produção (GitHub Pages): o chunk do PeerJS carrega só ao abrir o online e `?sala=` abre a tela Online | ⏳ pendente — Diego: conferir após o deploy |
+
+## 9. Jogo no celular
+
+Spec: [2026-11-03-alcapao-celular-design.md](specs/2026-11-03-alcapao-celular-design.md). Testes automatizados de `stick`, `touch`, `canJoin` e `joinAction`; o resto depende de conferir no painel (preset mobile, 812×375) e num celular de verdade.
+
+| Item | Resultado |
+|---|---|
+| Analógico (zona morta, limite, eixo) e dois dedos (o segundo não rouba o analógico): `StickTracker` | ✅ verificado automaticamente: `tests/input/stick.test.ts` |
+| `TouchInput` (empurrão único, `reset`) | ✅ verificado automaticamente: `tests/input/touch.test.ts` |
+| Regra de 1 jogador na entrada (`canJoin`) e troca do P1 de toque por teclado/gamepad (`joinAction`) | ✅ verificado automaticamente: `tests/ui/join-logic.test.ts` |
+| Botões VOLTAR (entrada, Online) e FECHAR/SAIR DA SALA (lobby) no toque; WASD com o P1 de toque troca o P1 sem criar P2; no PC os botões não aparecem | ✅ verificado no painel (812×375, toque por `PointerEvent` sintético) |
+| Partida offline inteira só com toque e aviso "Gire o celular" em retrato | ⏳ pendente — Diego: conferir no painel do navegador (preset mobile) |
+| Celular de verdade na rede local (`npm run dev -- --host`): partida offline e online com o PC de host | ⏳ pendente — Diego |
+| Tela cheia, trava em paisagem, áudio e FPS no Android; no iOS vale só o aviso | ⏳ pendente — Diego |
+| No PC, com teclado ou gamepad, nada muda (`?quick=points&players=4` e o fluxo normal) | ⏳ pendente — Diego |
+
 ## Observações
 
 - Nenhum erro ou aviso no console em nenhum dos cenários automatizados.

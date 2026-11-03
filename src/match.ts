@@ -5,13 +5,12 @@ import { screenViewFor } from './render/screen-view';
 import { createDebug } from './render/debug';
 import { createCharacter } from './render/character';
 import { createEffects } from './render/effects';
-import { createGame, type Game, type GameConfig } from './core/game';
-import { createStepper } from './loop';
 import { createHud } from './ui/hud';
-import type { DeviceSlots } from './input/devices';
+import type { MatchInput } from './input/match-input';
+import type { SimFrame, SimSource } from './sim/source';
 import type { GamepadInput } from './input/gamepad';
 import type { KeyboardInput } from './input/keyboard';
-import type { GameEvent, GameState, Mode, PlayerId, PlayerInput, Question, RankEntry, Zone } from './core/types';
+import type { GameEvent, GameState, Mode, PlayerId, RankEntry, Vec2, Zone } from './core/types';
 
 const PLAYER_IDS: PlayerId[] = ['P1', 'P2', 'P3', 'P4'];
 const PUSH_POSE_TIME = 0.3;
@@ -28,14 +27,13 @@ export interface MatchResult {
 export interface MatchDeps {
   scene: THREE.Scene;
   hudRoot: HTMLElement;
-  bank: Question[];
   keyboard: KeyboardInput;
   gamepad: GamepadInput;
 }
 
 export interface MatchController {
   /** Começa uma partida nova (zera teclado/gamepad, R10). */
-  start(config: GameConfig, devices: DeviceSlots): void;
+  start(source: SimSource, input: MatchInput): void;
   /** Um quadro: lê entradas, avança passos fixos e sincroniza a cena. Não faz nada pausado. */
   update(realDt: number): void;
   pause(): void;
@@ -54,7 +52,7 @@ export interface MatchController {
   drainEvents(): GameEvent[];
 }
 
-export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad }: MatchDeps): MatchController {
+export function createMatchController({ scene, hudRoot, keyboard, gamepad }: MatchDeps): MatchController {
   const pending: GameEvent[] = [];
   const arena = createArena(scene);
   const screen = createScreen(scene);
@@ -67,14 +65,12 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
   })) as Record<PlayerId, ReturnType<typeof createCharacter>>;
 
   let hud = createHud(hudRoot);
-  let devices: DeviceSlots | null = null;
-  let game: Game | null = null;
+  let input: MatchInput | null = null;
+  let source: SimSource | null = null;
+  let current: GameState | null = null;
   let result: MatchResult | null = null;
   let paused = false;
   let clock = 0;
-  let stepper = createStepper();
-  const held = new Map<PlayerId, PlayerInput>();
-  const prev = new Map<PlayerId, { x: number; z: number }>();
   const pushUntil = new Map<PlayerId, number>();
   const cheering = new Set<PlayerId>();
   const respawning = new Set<PlayerId>(); // core mantém fallen até o fim do RESET (R12)
@@ -86,7 +82,7 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
 
   function handleEvents(state: GameState, events: GameEvent[]): void {
     for (const e of events) {
-      if (e.type === 'phaseChanged' && e.phase === 'spin') { arena.reset(); respawning.clear(); prev.clear(); } // fim do RESET: todos voltam ao slot
+      if (e.type === 'phaseChanged' && e.phase === 'spin') { arena.reset(); respawning.clear(); } // fim do RESET: todos voltam ao slot
       else if (e.type === 'locked') lastZones = e.zones;
       else if (e.type === 'pushed') {
         pushUntil.set(e.by, clock + PUSH_POSE_TIME);
@@ -107,7 +103,7 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
           }
         }
       } else if (e.type === 'respawned') {
-        for (const id of e.players) { respawning.add(id); chars[id].playRespawnDrop(); prev.delete(id); } // posição saltou: sem interpolar
+        for (const id of e.players) { respawning.add(id); chars[id].playRespawnDrop(); }
       } else if (e.type === 'gameOver') {
         const rounds = state.totalRounds ?? undefined;
         result = { mode: state.mode, rounds, players: state.players.length, ranking: e.ranking, roundsSurvived: e.roundsSurvived, scores: e.scores };
@@ -116,12 +112,11 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
     if (state.phase !== 'reveal') cheering.clear();
   }
 
-  function syncCharacters(state: GameState, alpha: number, dt: number): void {
+  function syncCharacters(state: GameState, positions: ReadonlyMap<PlayerId, Vec2>, dt: number): void {
     for (const id of PLAYER_IDS) {
       const p = state.players.find((q) => q.id === id);
       if (!p) { chars[id].update(dt, { pos: { x: 0, z: 0 }, facing: 0, speed: 0, pose: 'idle', visible: false }); continue; }
-      const a = prev.get(id) ?? p.pos;
-      const pos = { x: a.x + (p.pos.x - a.x) * alpha, z: a.z + (p.pos.z - a.z) * alpha };
+      const pos = positions.get(id) ?? p.pos;
       const speed = Math.hypot(p.vel.x, p.vel.z);
       const pose = p.fallen && !respawning.has(id) ? 'fall'
         : (pushUntil.get(id) ?? 0) > clock ? 'push'
@@ -134,20 +129,20 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
   let debugOn = false;
 
   return {
-    start(config, slots) {
+    start(src, inp) {
       pending.length = 0;
-      devices = slots;
-      game = createGame(config, bank);
+      input = inp;
+      source = src;
+      current = null;
       result = null;
       paused = false;
-      stepper = createStepper();
       keyboard.reset();
       gamepad.reset();
       hud = createHud(hudRoot);
       arena.reset();
       for (const c of Object.values(chars)) c.reset();
       effects.clear();
-      respawning.clear(); held.clear(); prev.clear(); pushUntil.clear(); cheering.clear();
+      respawning.clear(); pushUntil.clear(); cheering.clear();
       lastZones = {};
     },
 
@@ -158,49 +153,33 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
       arena.update(dt);
       screen.update(dt);
       effects.update(dt);
-      if (!game || !devices) return;
-      const state = game.state;
+      if (!source || !input) return;
+      const frame: SimFrame | null = source.advance(realDt, input.read());
+      if (!frame) return;
+      const { state, events } = frame;
+      current = state;
       if (import.meta.env.DEV) (window as unknown as { matchState?: GameState }).matchState = state; // gancho para a verificação automatizada
-
-      // entrada: o push fica pendente até algum passo consumir
-      for (const id of devices.players()) {
-        const d = devices.deviceOf(id);
-        if (!d) continue;
-        const r = d.startsWith('gp-') ? gamepad.read(d) : keyboard.read(d);
-        const h = held.get(id);
-        held.set(id, { move: r.move, push: r.push || (h?.push ?? false) });
-      }
-
-      const { steps, alpha } = stepper.advance(realDt);
-      const events: GameEvent[] = [];
-      for (let i = 0; i < steps; i++) {
-        for (const p of state.players) prev.set(p.id, { ...p.pos });
-        const inputs: Partial<Record<PlayerId, PlayerInput>> = Object.fromEntries(held);
-        events.push(...game.step(1 / 60, inputs));
-        for (const h of held.values()) h.push = false;
-      }
-      if (steps === 0) for (const p of state.players) if (!prev.has(p.id)) prev.set(p.id, { ...p.pos });
 
       handleEvents(state, events);
       pending.push(...events);
-      syncCharacters(state, alpha, dt);
-      const view = screenViewFor(state, clock, game.availableThemes());
+      syncCharacters(state, frame.positions, dt);
+      const view = screenViewFor(state, clock, frame.themes);
       if (view) screen.draw(view);
-      hud.update(state, devices, events);
+      hud.update(state, input, events);
       if (debugOn) debug.update(state);
       if (import.meta.env.DEV) (window as unknown as { matchReady?: boolean }).matchReady = true;
     },
 
-    pause() { if (game) paused = true; },
+    pause() { if (source?.pausable) paused = true; },
     resume() { paused = false; },
     isPaused: () => paused,
-    isOver: () => game?.state.phase === 'over',
-    state: () => game?.state ?? null,
+    isOver: () => current?.phase === 'over',
+    state: () => current,
     drainEvents() { return pending.splice(0); },
     result: () => result,
 
     stop() {
-      game = null; devices = null; result = null; paused = false; pending.length = 0;
+      source = null; input = null; current = null; result = null; paused = false; pending.length = 0;
       hud = createHud(hudRoot);
       hideCharacters();
       effects.clear();
@@ -208,6 +187,6 @@ export function createMatchController({ scene, hudRoot, bank, keyboard, gamepad 
     },
 
     setDebug(on) { debugOn = on; debug.setVisible(on); },
-    skipPhase() { game?.debugSkipPhase(); },
+    skipPhase() { source?.skipPhase(); },
   };
 }

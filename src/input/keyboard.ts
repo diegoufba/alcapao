@@ -1,6 +1,6 @@
 import type { PlayerInput, Vec2 } from '../core/types';
 
-export type DeviceId = 'kb-wasd' | 'kb-arrows' | 'kb-ijkl' | `gp-${number}`;
+export type DeviceId = 'kb-wasd' | 'kb-arrows' | 'kb-ijkl' | 'touch' | `gp-${number}`;
 
 export const KEY_GROUPS: { id: DeviceId; up: string; down: string; left: string; right: string; push: string }[] = [
   { id: 'kb-wasd', up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', push: 'KeyF' },
