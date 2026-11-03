@@ -23,7 +23,12 @@ export function createTouchMode(target: EventTarget, root: { classList: { toggle
   target.addEventListener('pointerdown', (e) => {
     if ((e as PointerEvent).pointerType === 'touch') set(true);
   }, { capture: true });
-  target.addEventListener('keydown', () => set(false), { capture: true });
+  target.addEventListener('keydown', (e) => {
+    // Teclado virtual do celular digitando num campo de texto: não é teclado físico, não desliga.
+    const t = (e as { target?: { tagName?: string } | null }).target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+    set(false);
+  }, { capture: true });
 
   return {
     isOn: () => on,

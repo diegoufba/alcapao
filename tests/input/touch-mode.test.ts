@@ -5,6 +5,13 @@ function touchDown(target: EventTarget, pointerType: string): void {
   target.dispatchEvent(Object.assign(new Event('pointerdown'), { pointerType }));
 }
 
+/** Tecla cujo `target` é um elemento com o `tagName` dado (como um campo de texto focado). */
+function keyFrom(target: EventTarget, tagName: string): void {
+  const evt = new Event('keydown');
+  Object.defineProperty(evt, 'target', { value: Object.assign(new EventTarget(), { tagName }) });
+  target.dispatchEvent(evt);
+}
+
 function fakeRoot() {
   const calls: Array<[string, boolean]> = [];
   return {
@@ -38,6 +45,16 @@ describe('createTouchMode', () => {
     touchDown(target, 'touch');
     target.dispatchEvent(new Event('keydown'));
     expect(mode.isOn()).toBe(false);
+  });
+
+  test('tecla digitada num campo de texto não desliga', () => {
+    const target = new EventTarget();
+    const { root } = fakeRoot();
+    const mode = createTouchMode(target, root);
+    touchDown(target, 'touch');
+    keyFrom(target, 'INPUT');
+    keyFrom(target, 'TEXTAREA');
+    expect(mode.isOn()).toBe(true);
   });
 
   test('setOff desliga', () => {
