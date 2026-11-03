@@ -16,6 +16,11 @@ import { createMatchController } from './match';
 import { createLocalSource } from './sim/local';
 import type { SimSource } from './sim/source';
 import { deviceInput, type MatchInput } from './input/match-input';
+import { anyDeviceInput } from './input/any-input';
+import { hostRoom, joinRoom, NetError } from './net/transport';
+import { createHostSession, type HostSession } from './net/host-session';
+import { joinSession, type ClientSession } from './net/client-session';
+import { normalizeRoomCode } from './net/room-code';
 import { createRouter, type Screen } from './ui/router';
 import { createNav, emitUi, onUiEvent, PadNav, type PadEvent } from './ui/nav';
 import { createPressStart } from './ui/press-start';
@@ -60,9 +65,11 @@ async function runGame(): Promise<void> {
   hudRoot.className = 'is-hidden';
   const fpsEl = document.createElement('div');
   fpsEl.className = 'fps';
+  const devEl = document.createElement('div'); // código da sala nos atalhos de desenvolvimento do online
+  devEl.className = 'dev-online';
   const ui = document.createElement('div');
   ui.id = 'ui';
-  app.replaceChildren(canvas, hudRoot, fpsEl, ui);
+  app.replaceChildren(canvas, hudRoot, fpsEl, ui, devEl);
 
   await Promise.all([document.fonts.load('40px "Titan One"'), document.fonts.load('700 40px Nunito'), document.fonts.load('800 40px Nunito')]);
   const { renderer, scene, camera, resize, update: updateScene } = createScene(canvas);
@@ -123,6 +130,15 @@ async function runGame(): Promise<void> {
 
   let overTimer = -1; // contagem até a tela de resultados (<0 = inativa)
   let activeDevices: DeviceSlots | null = null; // jogadores da partida em andamento
+  /** Sessão online ativa (host ou cliente); null no offline. */
+  let online: { kind: 'host'; session: HostSession } | { kind: 'client'; session: ClientSession } | null = null;
+
+  /** Fecha a sessão online, se houver, e volta ao offline. */
+  function leaveOnline(): void {
+    online?.session.close();
+    online = null;
+    devEl.textContent = '';
+  }
 
   // --- telas ---------------------------------------------------------------
   const pressStart = createPressStart();
@@ -140,7 +156,16 @@ async function runGame(): Promise<void> {
     onStart: (config, devices) => { router.go('match', matchParams(config, devices)); },
     onBack: () => router.go('menu'),
   });
-  const results = createResults({ nav, storage, onAgain: () => router.go('join', { keep: true }), onMenu: () => router.go('menu') });
+  const results = createResults({
+    nav,
+    storage,
+    onAgain: () => {
+      // online: o host volta todos ao lobby (espera o Espaço); o cliente só espera o próximo 'start'
+      if (online?.kind === 'host') { online.session.backToLobby(); router.go('menu'); }
+      else if (!online) router.go('join', { keep: true });
+    },
+    onMenu: () => { leaveOnline(); router.go('menu'); },
+  });
   const pause = createPause(nav, resumeMatch, () => { resumeMatch(); router.go('menu'); });
   const errorScreen = createError(nav);
   const noop: ScreenCtl = { el: document.createElement('div'), show() {}, hide() {} };
@@ -148,6 +173,7 @@ async function runGame(): Promise<void> {
   ui.append(pressStart.el, menu.el, options.el, join.el, results.el, pause.el, errorScreen.el);
 
   function pauseMatch(): void {
+    if (online) return; // online não pausa
     if (router.current() !== 'match' || match.isPaused() || match.isOver() || overTimer >= 0) return;
     match.pause();
     pause.show();
@@ -189,6 +215,12 @@ async function runGame(): Promise<void> {
     if (e.code === 'KeyN' && fpsEl.classList.contains('is-on') && s === 'match') { match.skipPhase(); return; }
     if (errorScreen.el.hidden === false) { if (nav.key(e.code)) e.preventDefault(); return; }
 
+    // atalho do host online: Espaço/Enter começa a partida (enquanto não há tela de lobby)
+    if (online?.kind === 'host' && (s === 'press-start' || s === 'menu') && (e.code === 'Space' || e.code === 'Enter')) {
+      e.preventDefault();
+      if (!e.repeat) hostStart();
+      return;
+    }
     if (s === 'press-start') {
       if (e.repeat || MODIFIER_CODES.has(e.code) || e.code === 'Tab' || /^F\d+$/.test(e.code)) return;
       e.preventDefault();
@@ -281,9 +313,81 @@ async function runGame(): Promise<void> {
         if (overTimer <= 0 && res) { overTimer = -1; router.go('results', res); }
       }
     }
-    if (fpsEl.classList.contains('is-on')) fpsEl.textContent = `${frames.length} FPS`;
+    if (fpsEl.classList.contains('is-on')) fpsEl.textContent = fpsText(frames.length);
     renderer.render(scene, camera);
   });
+
+  /** FPS e, no cliente online, ida e volta do ping e idade do último snapshot. */
+  function fpsText(fps: number): string {
+    if (online?.kind !== 'client') return `${fps} FPS`;
+    const ms = (v: number) => (Number.isFinite(v) ? `${Math.round(v)} ms` : '—');
+    return `${fps} FPS · RTT ${ms(online.session.rtt())} · snap ${ms(online.session.snapshotAge() * 1000)}`;
+  }
+
+  // --- online (por enquanto só pelos atalhos de desenvolvimento) --------------
+  /** Host: começa a partida com quem está no lobby (precisa de 2 ou mais). */
+  function hostStart(): void {
+    if (online?.kind !== 'host') return;
+    const { session } = online;
+    const config = session.start(Date.now());
+    if (!config) { console.info('[online] precisa de 2 jogadores ou mais para começar'); return; }
+    router.go('match', { source: createLocalSource(config, bank, session.hooks()), input: anyDeviceInput('P1', keyboard, gamepad, session) });
+  }
+
+  function netErrorText(err: unknown): string {
+    if (!(err instanceof NetError)) return 'Não foi possível conectar.';
+    switch (err.kind) {
+      case 'not-found': return 'Sala não encontrada.';
+      case 'full': return 'A sala está cheia.';
+      case 'started': return 'Partida já começou.';
+      case 'version': return 'Sua versão do jogo é diferente da do host.';
+      default: return 'Não foi possível conectar.';
+    }
+  }
+
+  /** Erro do online: sai da sessão, volta ao menu e mostra a tela de erro (o "Tentar de novo" recarrega sem o atalho). */
+  function onlineFailed(text: string): void {
+    leaveOnline();
+    const url = new URL(location.href);
+    url.searchParams.delete('online');
+    url.searchParams.delete('sala');
+    history.replaceState(null, '', url);
+    router.go('menu');
+    document.body.dataset.screen = 'error';
+    errorScreen.show(text);
+  }
+
+  async function startOnlineDev(kind: string | null): Promise<void> {
+    try {
+      if (kind === 'host') {
+        const room = await hostRoom();
+        const session = createHostSession(room, bank);
+        online = { kind: 'host', session };
+        console.info('[online] sala', room.code);
+        const show = () => {
+          const n = session.lobby().players.length;
+          devEl.textContent = `Sala ${room.code} · ${n} ${n === 1 ? 'jogador' : 'jogadores'} · Espaço começa (2+)`;
+        };
+        session.onLobby(show);
+        show();
+      } else if (kind === 'join') {
+        const code = normalizeRoomCode(params.get('sala') ?? '');
+        if (!code) throw new NetError('not-found');
+        const session = await joinSession(await joinRoom(code), bank);
+        online = { kind: 'client', session };
+        devEl.textContent = `Sala ${code} · você é ${session.you} · esperando o host`;
+        session.onStart(() => {
+          router.go('match', { source: session.source(), input: anyDeviceInput(session.you, keyboard, gamepad, session) });
+        });
+        session.onClosed(() => { if (online?.session === session) onlineFailed('A conexão com o host caiu.'); });
+      }
+    } catch (err) {
+      console.warn('[online]', err);
+      onlineFailed(netErrorText(err));
+    }
+  }
+  // avisa os outros na hora em vez de esperar o timeout da conexão
+  window.addEventListener('pagehide', () => { online?.session.close(); });
 
   // --- partida rápida para testes (só em desenvolvimento) ---------------------
   if (error) {
@@ -301,6 +405,10 @@ async function runGame(): Promise<void> {
       ? { mode: 'points', rounds: rounds === 12 || rounds === 16 ? rounds : 8, players, seed }
       : { mode: 'survival', players, seed };
     router.go('match', matchParams(config, devices));
+  } else if (import.meta.env.DEV && params.has('online')) {
+    document.body.dataset.screen = 'press-start';
+    pressStart.show();
+    void startOnlineDev(params.get('online'));
   } else {
     document.body.dataset.screen = 'press-start';
     pressStart.show();

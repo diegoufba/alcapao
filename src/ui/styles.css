@@ -43,6 +43,11 @@ html, body { margin: 0; height: 100%; background: var(--sky); color: var(--text)
   font: 600 13px monospace; color: var(--yellow); display: none; pointer-events: none;
 }
 .fps.is-on { display: block; }
+.dev-online {
+  position: fixed; bottom: 8px; left: 10px; z-index: 10; padding: 3px 8px; border-radius: 6px; background: rgba(30, 26, 46, 0.75);
+  font: 600 13px monospace; color: var(--yellow); pointer-events: none;
+}
+.dev-online:empty { display: none; }
 
 .is-hidden { display: none !important; }
 body[data-screen="press-start"] #app canvas { filter: blur(5px) saturate(1.1) brightness(1.05); transform: scale(1.03); }

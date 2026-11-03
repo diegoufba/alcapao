@@ -87,6 +87,11 @@ export class GamepadInput {
     return id.startsWith('gp-') && (this.pads.get(Number(id.slice(3)))?.connected ?? false);
   }
 
+  /** Pads conectados no último poll, em ordem de índice. */
+  connectedIds(): DeviceId[] {
+    return [...this.pads].filter(([, st]) => st.connected).sort(([a], [b]) => a - b).map(([i]): DeviceId => `gp-${i}`);
+  }
+
   read(id: DeviceId): PlayerInput {
     const idle: PlayerInput = { move: { x: 0, z: 0 }, push: false };
     if (!id.startsWith('gp-')) return idle;
