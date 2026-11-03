@@ -12,6 +12,8 @@ export default tseslint.config(
       'src/net/protocol.ts',
       'src/net/snapshots.ts',
       'src/net/host-rules.ts',
+      'src/input/stick.ts',
+      'src/input/touch.ts',
     ],
     rules: {
       'no-restricted-imports': [

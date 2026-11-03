@@ -9,6 +9,7 @@ const DEVICE_LABELS: Record<string, string> = {
   'kb-wasd': 'WASD + F',
   'kb-arrows': 'Setas + Shift',
   'kb-ijkl': 'IJKL + O',
+  touch: 'Toque',
 };
 
 export function deviceLabel(d: DeviceId | null): string {

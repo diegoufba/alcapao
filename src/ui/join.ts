@@ -16,6 +16,7 @@ function deviceInfo(d: DeviceId): { dev: string; keys: string } {
     case 'kb-wasd': return { dev: 'Teclado · WASD', keys: 'Mover: W A S D\nEmpurrar: F' };
     case 'kb-arrows': return { dev: 'Teclado · Setas', keys: 'Mover: setas\nEmpurrar: Shift direito' };
     case 'kb-ijkl': return { dev: 'Teclado · IJKL', keys: 'Mover: I J K L\nEmpurrar: O' };
+    case 'touch': return { dev: 'Toque', keys: '' };
     default: return { dev: `Gamepad ${Number(d.slice(3)) + 1}`, keys: 'Mover: analógico\nEmpurrar: A / X' };
   }
 }
