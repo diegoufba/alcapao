@@ -31,7 +31,7 @@ export class RemoteInputs {
     if (Number.isInteger(pushCount) && pushCount >= 0) {
       const novos = Math.max(0, pushCount - state.lastCount);
       state.pending = Math.min(MAX_PENDING_PUSHES, state.pending + novos);
-      state.lastCount = pushCount;
+      state.lastCount = Math.max(state.lastCount, pushCount);
     }
     this.players.set(id, state);
   }

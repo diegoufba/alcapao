@@ -61,7 +61,18 @@ describe('RemoteInputs', () => {
     r.next();
     r.next();
     r.set('P2', PARADO, 3);
+    r.set('P2', PARADO, 5);
     expect(r.next().get('P2')?.push).toBe(false);
+  });
+
+  test('pushCount não inteiro, negativo ou NaN não gera empurrão e não muda o move', () => {
+    const r = new RemoteInputs();
+    r.set('P2', { x: 1, z: 0 }, 1.5);
+    r.set('P2', { x: 0, z: 1 }, -1);
+    r.set('P2', { x: 0, z: -1 }, NaN);
+    const entrada = r.next().get('P2');
+    expect(entrada?.push).toBe(false);
+    expect(entrada?.move).toEqual({ x: 0, z: -1 });
   });
 
   test('drop remove o jogador', () => {
@@ -72,6 +83,17 @@ describe('RemoteInputs', () => {
     const mapa = r.next();
     expect(mapa.has('P2')).toBe(false);
     expect(mapa.has('P3')).toBe(true);
+  });
+
+  test('drop seguido de um novo set recomeça a contagem do 0', () => {
+    const r = new RemoteInputs();
+    r.set('P2', PARADO, 5);
+    r.next();
+    r.next();
+    r.drop('P2');
+    r.set('P2', PARADO, 1);
+    expect(r.next().get('P2')?.push).toBe(true);
+    expect(r.next().get('P2')?.push).toBe(false);
   });
 
   test('next devolve o último move de cada jogador que mandou input', () => {
