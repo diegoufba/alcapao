@@ -11,6 +11,7 @@ import { KeyboardInput, type DeviceId } from './input/keyboard';
 import { GamepadInput, type PadLike } from './input/gamepad';
 import { DeviceSlots } from './input/devices';
 import { applyPadChanges } from './input/connection';
+import { createTouchMode } from './input/touch-mode';
 import { safeStorage } from './storage';
 import { createMatchController } from './match';
 import { createLocalSource } from './sim/local';
@@ -122,6 +123,7 @@ async function runGame(): Promise<void> {
   }
   for (const type of ['keydown', 'pointerdown'] as const) window.addEventListener(type, wakeAudio, { capture: true });
   syncAudioHint();
+  const touchMode = createTouchMode(window, document.body);
 
   /** Parâmetros da rota `match` para uma partida offline: fonte local + dispositivos. */
   function matchParams(config: GameConfig, devices: DeviceSlots): { source: SimSource; input: MatchInput; devices: DeviceSlots } {
@@ -311,6 +313,7 @@ async function runGame(): Promise<void> {
     const pads = navigator.getGamepads ? Array.from(navigator.getGamepads()) as (PadLike | null)[] : [];
     const poll = gamepad.poll(pads);
     const events: PadEvent[] = padNav.poll(pads, now);
+    if (poll.joined.length > 0 || events.length > 0) touchMode.setOff();
     const s = router.current();
     if (s === 'join') for (const d of poll.disconnected) join.padDisconnected(d);
     else if (s === 'match' && activeDevices) for (const e of applyPadChanges(activeDevices, poll, s)) emitUi(e);
