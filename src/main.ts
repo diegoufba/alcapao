@@ -300,14 +300,28 @@ async function runGame(): Promise<void> {
       await orientation?.lock?.('landscape');
     } catch { /* sem tela cheia ou sem suporte */ }
   }
-  // Toque ou clique também saem da press-start. No toque, o mesmo gesto pede tela cheia e trava em paisagem
-  // (sem erro visível se o navegador recusar). O `click` que o toque sintetiza logo depois é engolido, para não
-  // acionar o botão do menu que aparece embaixo do dedo. Vale só até o próximo `pointerdown` ou tecla (toque longo não gera `click`).
+  // Toque ou clique (botão principal) também saem da press-start, já no `pointerdown`. No toque, o mesmo gesto pede
+  // tela cheia e paisagem, mas só no `pointerup`: no toque, a ativação de usuário (exigida pelo `requestFullscreen`)
+  // só vem no `pointerup`/`touchend`/`click`, não no `pointerdown`.
+  // O `click` que o gesto gera logo depois é engolido, para não acionar o botão do menu que aparece embaixo do
+  // dedo. A trava vale até o primeiro `click` ou até o tick seguinte ao `pointerup` (toque longo não gera `click`,
+  // e um `.click()` do gamepad depois disso não pode ser comido); cai também em `pointercancel`, `pointerdown` e tecla.
   let swallowClick = false;
+  let landscapePointer: number | null = null; // toque que saiu da press-start e ainda não soltou
   for (const type of ['pointerdown', 'keydown'] as const) window.addEventListener(type, () => { swallowClick = false; }, { capture: true });
+  window.addEventListener('pointercancel', (e) => {
+    swallowClick = false;
+    if (e.pointerId === landscapePointer) landscapePointer = null;
+  }, { capture: true });
+  window.addEventListener('pointerup', (e) => {
+    if (e.pointerId === landscapePointer) { landscapePointer = null; void goLandscape(); }
+    if (swallowClick) setTimeout(() => { swallowClick = false; }, 0);
+  }, { capture: true });
   window.addEventListener('pointerdown', (e) => {
     if (router.current() !== 'press-start' || errorScreen.el.hidden === false || !e.isPrimary) return;
-    if (e.pointerType === 'touch') void goLandscape();
+    const isTouch = e.pointerType === 'touch';
+    if (!isTouch && e.button !== 0) return;
+    if (isTouch) landscapePointer = e.pointerId;
     swallowClick = true;
     leavePressStart(); // wakeAudio já roda no pointerdown em captura; o emitUi('confirmar') está aqui dentro
   });
