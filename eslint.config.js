@@ -4,7 +4,7 @@ export default tseslint.config(
   { ignores: ['dist/**', 'node_modules/**', 'tools/**', '.superpowers/**'] },
   ...tseslint.configs.recommended,
   {
-    files: ['src/core/**/*.ts', 'src/audio/director.ts'],
+    files: ['src/core/**/*.ts', 'src/sim/**/*.ts', 'src/audio/director.ts'],
     rules: {
       'no-restricted-imports': [
         'error',

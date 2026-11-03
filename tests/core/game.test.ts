@@ -1,25 +1,13 @@
 import { test, expect, describe } from 'vitest';
 import { createGame } from '../../src/core/game';
 import type { Game } from '../../src/core/game';
+import { bank } from '../helpers/bank';
 import { PLATFORM_CENTERS, SPAWNS } from '../../src/core/arena';
 import type { GameEvent, Phase, PlayerId, PlayerInput, Question, Vec2 } from '../../src/core/types';
 
 const DT = 1 / 60;
 type InputsFn = (g: Game) => Partial<Record<PlayerId, PlayerInput>>;
 type Ev<T extends GameEvent['type']> = Extract<GameEvent, { type: T }>;
-
-function bank(perTheme = 6): Question[] {
-  const out: Question[] = [];
-  for (let t = 0; t < 5; t++) {
-    for (let i = 0; i < perTheme; i++) {
-      out.push({
-        id: `t${t}-${i}`, theme: `Tema${t}`, difficulty: (Math.floor(i / 2) + 1) as 1 | 2 | 3,
-        text: `Pergunta ${t}-${i}`, options: ['a', 'b', 'c', 'd'], correct: (i % 4) as 0 | 1 | 2 | 3,
-      });
-    }
-  }
-  return out;
-}
 
 function run(game: Game, seconds: number, inputsFn?: InputsFn): GameEvent[] {
   const events: GameEvent[] = [];

@@ -1,7 +1,7 @@
 import type { GameEvent, GameState, PlayerId, PlayerState } from '../core/types';
 import { zoneOf } from '../core/arena';
 import { PUSH_COOLDOWN } from '../core/physics';
-import type { DeviceSlots } from '../input/devices';
+import type { HudSlots } from '../input/match-input';
 import type { DeviceId } from '../input/keyboard';
 import { PLAYER_COLORS, ZONE_STYLE } from '../render/scene';
 
@@ -65,7 +65,7 @@ function statusOf(
 }
 
 export function createHud(root: HTMLElement): {
-  update(state: GameState, devices: DeviceSlots, events: GameEvent[]): void;
+  update(state: GameState, slots: HudSlots, events: GameEvent[]): void;
 } {
   root.classList.add('hud');
   root.replaceChildren();
@@ -92,7 +92,7 @@ export function createHud(root: HTMLElement): {
   }
 
   return {
-    update(state, devices, events) {
+    update(state, slots, events) {
       for (const e of events) {
         if (e.type !== 'revealed') continue;
         voided = e.voided;
@@ -103,10 +103,10 @@ export function createHud(root: HTMLElement): {
       for (const p of state.players) {
         let c = cards.get(p.id);
         if (!c) {
-          c = build(p, deviceLabel(devices.deviceOf(p.id)));
+          c = build(p, slots.label(p.id));
           cards.set(p.id, c);
         }
-        const st = statusOf(p, state, eliminatedAt, gain, !devices.isConnected(p.id), voided);
+        const st = statusOf(p, state, eliminatedAt, gain, !slots.isConnected(p.id), voided);
         if (st.text !== c.last.status) { c.status.textContent = st.text; c.last.status = st.text; }
         if (st.color !== c.last.color) { c.status.style.color = st.color; c.last.color = st.color; }
         if (st.dim !== c.last.dim) { c.el.classList.toggle('is-dim', st.dim); c.last.dim = st.dim; }

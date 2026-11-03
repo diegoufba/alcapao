@@ -13,6 +13,9 @@ import { DeviceSlots } from './input/devices';
 import { applyPadChanges } from './input/connection';
 import { safeStorage } from './storage';
 import { createMatchController } from './match';
+import { createLocalSource } from './sim/local';
+import type { SimSource } from './sim/source';
+import { deviceInput, type MatchInput } from './input/match-input';
 import { createRouter, type Screen } from './ui/router';
 import { createNav, emitUi, onUiEvent, PadNav, type PadEvent } from './ui/nav';
 import { createPressStart } from './ui/press-start';
@@ -71,7 +74,7 @@ async function runGame(): Promise<void> {
   const padNav = new PadNav();
   const nav = createNav();
   const router = createRouter();
-  const match = createMatchController({ scene, hudRoot, bank, keyboard, gamepad });
+  const match = createMatchController({ scene, hudRoot, keyboard, gamepad });
 
   // --- áudio ---------------------------------------------------------------
   // O AudioContext só nasce no primeiro input da press-start (política de autoplay dos navegadores).
@@ -113,6 +116,11 @@ async function runGame(): Promise<void> {
   for (const type of ['keydown', 'pointerdown'] as const) window.addEventListener(type, wakeAudio, { capture: true });
   syncAudioHint();
 
+  /** Parâmetros da rota `match` para uma partida offline: fonte local + dispositivos. */
+  function matchParams(config: GameConfig, devices: DeviceSlots): { source: SimSource; input: MatchInput; devices: DeviceSlots } {
+    return { source: createLocalSource(config, bank), input: deviceInput(devices, keyboard, gamepad), devices };
+  }
+
   let overTimer = -1; // contagem até a tela de resultados (<0 = inativa)
   let activeDevices: DeviceSlots | null = null; // jogadores da partida em andamento
 
@@ -129,7 +137,7 @@ async function runGame(): Promise<void> {
   const join = createJoin({
     keyboard,
     isPadConnected: (d) => gamepad.isConnected(d),
-    onStart: (config, devices) => { router.go('match', { config, devices }); },
+    onStart: (config, devices) => { router.go('match', matchParams(config, devices)); },
     onBack: () => router.go('menu'),
   });
   const results = createResults({ nav, storage, onAgain: () => router.go('join', { keep: true }), onMenu: () => router.go('menu') });
@@ -158,10 +166,10 @@ async function runGame(): Promise<void> {
     hudRoot.classList.toggle('is-hidden', s !== 'match');
     activeDevices = null;
     if (s === 'match') {
-      const { config, devices } = p as { config: GameConfig; devices: DeviceSlots };
-      activeDevices = devices;
+      const { source, input, devices } = p as { source: SimSource; input: MatchInput; devices?: DeviceSlots };
+      activeDevices = devices ?? null;
       overTimer = -1;
-      match.start(config, devices);
+      match.start(source, input);
       nav.setActive(null);
     } else if (from === 'match') {
       match.stop();
@@ -292,7 +300,7 @@ async function runGame(): Promise<void> {
     const config: GameConfig = quick === 'points'
       ? { mode: 'points', rounds: rounds === 12 || rounds === 16 ? rounds : 8, players, seed }
       : { mode: 'survival', players, seed };
-    router.go('match', { config, devices });
+    router.go('match', matchParams(config, devices));
   } else {
     document.body.dataset.screen = 'press-start';
     pressStart.show();
