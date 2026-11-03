@@ -2,6 +2,7 @@ import type { GameConfig } from '../core/game';
 import type { PlayerId, Question } from '../core/types';
 import type { HudSlots } from '../input/match-input';
 import { createRemoteSource } from '../sim/remote';
+import type { PushCounter } from '../sim/remote';
 import type { SimSource } from '../sim/source';
 import { bankHash, decodeHost, encode, PROTOCOL_VERSION } from './protocol';
 import type { ClientMsg, LobbyInfo } from './protocol';
@@ -16,7 +17,7 @@ export interface ClientSession extends HudSlots {
   onLobby(cb: (l: LobbyInfo) => void): void;
   onStart(cb: (config: GameConfig) => void): void;
   onClosed(cb: (why: 'host-left') => void): void;
-  /** Fonte da partida atual (o buffer é novo a cada 'start'). */
+  /** Fonte da partida atual: a mesma até o próximo 'start', que cria buffer e fonte novos. */
   source(): SimSource;
   /** Ida e volta do último ping, em ms; Infinity antes do primeiro pong. */
   rtt(): number;
@@ -36,6 +37,8 @@ export function joinSession(link: Link, bank: Question[]): Promise<ClientSession
     let you: PlayerId | null = null;
     let lobbyInfo: LobbyInfo = { players: [], mode: 'survival', rounds: 12, started: false };
     let buffer: SnapshotBuffer | null = null;
+    let current: SimSource | null = null;
+    const pushes: PushCounter = { count: 0 }; // vale a conexão inteira: o host guarda a contagem por conexão
     let rtt = Infinity;
     let ended = false; // o link acabou (por nós ou pelo host)
     let ping: ReturnType<typeof setInterval> | null = null;
@@ -88,6 +91,7 @@ export function joinSession(link: Link, bank: Question[]): Promise<ClientSession
           break;
         case 'start':
           buffer = createSnapshotBuffer({ delayTicks: DELAY_TICKS });
+          current = newSource(buffer);
           left.clear();
           lobbyInfo = { ...lobbyInfo, started: true };
           for (const cb of startCbs) cb(msg.config);
@@ -115,6 +119,12 @@ export function joinSession(link: Link, bank: Question[]): Promise<ClientSession
 
     send({ t: 'hello', protocol: PROTOCOL_VERSION, build: bankHash(bank) });
 
+    function newSource(buf: SnapshotBuffer): SimSource {
+      return createRemoteSource(buf, you!, (move, pushCount) => {
+        if (!ended) send({ t: 'input', move, pushCount });
+      }, pushes);
+    }
+
     function build(me: PlayerId): ClientSession {
       return {
         you: me,
@@ -125,10 +135,11 @@ export function joinSession(link: Link, bank: Question[]): Promise<ClientSession
         onStart(cb) { startCbs.push(cb); },
         onClosed(cb) { closedCbs.push(cb); },
         source() {
-          buffer ??= createSnapshotBuffer({ delayTicks: DELAY_TICKS });
-          return createRemoteSource(buffer, me, (move, pushCount) => {
-            if (!ended) send({ t: 'input', move, pushCount });
-          });
+          if (!current) {
+            buffer ??= createSnapshotBuffer({ delayTicks: DELAY_TICKS });
+            current = newSource(buffer);
+          }
+          return current;
         },
         rtt: () => rtt,
         snapshotAge: () => buffer?.age() ?? Infinity,

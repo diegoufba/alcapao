@@ -36,7 +36,7 @@ export function createHostSession(room: HostRoom, bank: Question[]): HostSession
   let closed = false;
   const members = new Map<Link, PlayerId>(); // só conexões admitidas
   const dropped = new Set<PlayerId>(); // caíram durante a partida
-  let remote = new RemoteInputs();
+  const remote = new RemoteInputs(); // pushCount é por conexão: nunca zera entre partidas
   let lastSnapTick: number | null = null;
   const lobbyCbs: ((l: LobbyInfo) => void)[] = [];
 
@@ -72,6 +72,7 @@ export function createHostSession(room: HostRoom, bank: Question[]): HostSession
           return;
         }
         members.set(link, res.id);
+        remote.drop(res.id); // vaga reaproveitada: a contagem da conexão nova começa em 0
         players = ORDER.filter((p) => p === res.id || players.includes(p));
         link.send('ctl', encode({ t: 'welcome', you: res.id }));
         lobbyChanged();
@@ -80,7 +81,8 @@ export function createHostSession(room: HostRoom, bank: Question[]): HostSession
 
       switch (msg.t) {
         case 'input':
-          if (started) remote.set(id, msg.move, msg.pushCount);
+          // fora da partida também: a contagem precisa acompanhar; o start zera o que ficou pendente
+          remote.set(id, msg.move, msg.pushCount);
           break;
         case 'ping':
           link.send('ctl', encode({ t: 'pong', at: msg.at }));
@@ -97,8 +99,8 @@ export function createHostSession(room: HostRoom, bank: Question[]): HostSession
       const id = members.get(link);
       if (closed || id === undefined) return;
       members.delete(link);
+      remote.drop(id);
       if (started) {
-        remote.drop(id);
         dropped.add(id);
         broadcast({ t: 'left', id });
       } else {
@@ -127,7 +129,7 @@ export function createHostSession(room: HostRoom, bank: Question[]): HostSession
         ? { mode, rounds, players: [...players], seed }
         : { mode, players: [...players], seed };
       started = true;
-      remote = new RemoteInputs(); // pushCount do cliente recomeça a cada partida
+      remote.resetPending();
       lastSnapTick = null;
       dropped.clear();
       broadcast({ t: 'start', config });

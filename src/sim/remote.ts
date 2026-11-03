@@ -6,15 +6,21 @@ import type { SimSource } from './source';
 const HEARTBEAT = 0.2;
 const EPS = 1e-9;
 
-/** Fonte do cliente online: desenha o que vem do buffer e manda o input local de `you` ao host. */
+/** Contador de empurrões do cliente: só cresce, durante a conexão inteira (não zera entre partidas). */
+export interface PushCounter { count: number }
+
+/**
+ * Fonte do cliente online: desenha o que vem do buffer e manda o input local de `you` ao host.
+ * `counter` é da sessão e sobrevive às partidas; o padrão (novo, em 0) serve para uso avulso.
+ */
 export function createRemoteSource(
   buffer: SnapshotBuffer,
   you: PlayerId,
   send: (move: Vec2, pushCount: number) => void,
+  counter: PushCounter = { count: 0 },
 ): SimSource {
-  let pushCount = 0;
   let lastMove: Vec2 | null = null;
-  let lastCount = 0;
+  let lastCount = counter.count;
   let sinceSend = 0;
 
   return {
@@ -24,14 +30,14 @@ export function createRemoteSource(
     advance(realDt, local) {
       const input = local.get(you);
       const move: Vec2 = input ? { x: input.move.x, z: input.move.z } : { x: 0, z: 0 };
-      if (input?.push) pushCount++;
+      if (input?.push) counter.count++;
       sinceSend += realDt;
 
-      const changed = lastMove === null || move.x !== lastMove.x || move.z !== lastMove.z || pushCount !== lastCount;
+      const changed = lastMove === null || move.x !== lastMove.x || move.z !== lastMove.z || counter.count !== lastCount;
       if (changed || sinceSend >= HEARTBEAT - EPS) {
-        send(move, pushCount);
+        send(move, counter.count);
         lastMove = move;
-        lastCount = pushCount;
+        lastCount = counter.count;
         sinceSend = 0;
       }
       return buffer.advance(realDt);

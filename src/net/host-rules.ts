@@ -47,7 +47,15 @@ export class RemoteInputs {
     return out;
   }
 
-  /** O jogador some do mapa (fica parado). */
+  /** Começo de partida: zera empurrões pendentes e move de todos, mas guarda a contagem (vale a conexão inteira). */
+  resetPending(): void {
+    for (const state of this.players.values()) {
+      state.pending = 0;
+      state.move = { x: 0, z: 0 };
+    }
+  }
+
+  /** O jogador some do mapa (fica parado) e a contagem dele recomeça do zero. */
   drop(id: PlayerId): void {
     this.players.delete(id);
   }

@@ -135,6 +135,35 @@ describe('ClientSession', () => {
     expect(session.snapshotAge()).toBeCloseTo(1 / 60);
   });
 
+  const inputsSent = (received: ClientMsg[]) =>
+    received.filter((m): m is Extract<ClientMsg, { t: 'input' }> => m.t === 'input');
+  const apertou = new Map<PlayerId, PlayerInput>([['P2', { move: { x: 0, z: 0 }, push: true }]]);
+
+  test('source() chamado duas vezes na mesma partida devolve a mesma fonte', async () => {
+    const { session, say, received } = await welcomed();
+    say({ t: 'start', config: CONFIG });
+    const src = session.source();
+    expect(session.source()).toBe(src);
+    src.advance(1 / 60, apertou);
+    session.source().advance(1 / 60, apertou);
+    expect(inputsSent(received).map((m) => m.pushCount)).toEqual([1, 2]);
+  });
+
+  test('o pushCount continua crescendo entre duas partidas na mesma conexão', async () => {
+    const { session, say, received } = await welcomed();
+    say({ t: 'start', config: CONFIG });
+    const s1 = session.source();
+    s1.advance(1 / 60, apertou);
+    s1.advance(1 / 60, apertou);
+    say({ t: 'lobby', lobby: { players: ['P1', 'P2'], mode: 'survival', rounds: 12, started: false } });
+    say({ t: 'start', config: CONFIG });
+    const s2 = session.source();
+    expect(s2).not.toBe(s1);
+    s2.advance(1 / 60, new Map());
+    s2.advance(1 / 60, apertou);
+    expect(inputsSent(received).map((m) => m.pushCount)).toEqual([1, 2, 2, 3]);
+  });
+
   test('ping a cada 1 s e rtt pelo pong', async () => {
     vi.useFakeTimers();
     const { session, received, say } = await welcomed();

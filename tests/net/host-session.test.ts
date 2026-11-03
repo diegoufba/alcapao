@@ -133,6 +133,45 @@ describe('HostSession', () => {
     expect([...inputs.keys()]).toEqual(['P3']);
   });
 
+  test('input atrasado da partida anterior não gera empurrão nem bloqueia os seguintes', () => {
+    const { room, host } = setup();
+    const a = join(room);
+    host.start(1);
+    const hooks = host.hooks();
+    const input = (pushCount: number) => a.link.send('ctl', encode({ t: 'input', move: { x: 0, z: 0 }, pushCount }));
+    input(5);
+    hooks.remoteInputs!(); hooks.remoteInputs!(); // consome os empurrões da partida 1
+    host.backToLobby();
+    host.start(2);
+    const nova = host.hooks();
+    input(5); // heartbeat velho, chegando depois do start
+    expect(nova.remoteInputs!().get('P2')?.push).toBe(false);
+    input(6); // primeiro empurrão da partida 2
+    expect(nova.remoteInputs!().get('P2')?.push).toBe(true);
+    expect(nova.remoteInputs!().get('P2')?.push).toBe(false);
+  });
+
+  test('start zera empurrões pendentes e move de quem já estava', () => {
+    const { room, host } = setup();
+    const a = join(room);
+    host.start(1);
+    a.link.send('ctl', encode({ t: 'input', move: { x: 1, z: 0 }, pushCount: 2 }));
+    host.backToLobby();
+    host.start(2);
+    expect(host.hooks().remoteInputs!().get('P2')).toEqual({ move: { x: 0, z: 0 }, push: false });
+  });
+
+  test('vaga reaproveitada começa a contagem do zero', () => {
+    const { room, host } = setup();
+    const a = join(room);
+    a.link.send('ctl', encode({ t: 'input', move: { x: 0, z: 0 }, pushCount: 9 }));
+    a.link.close();
+    const b = join(room); // ganha P2 de novo
+    host.start(1);
+    b.link.send('ctl', encode({ t: 'input', move: { x: 0, z: 0 }, pushCount: 1 }));
+    expect(host.hooks().remoteInputs!().get('P2')?.push).toBe(true);
+  });
+
   test('ping recebe pong com o mesmo at', () => {
     const { room } = setup();
     const a = join(room);

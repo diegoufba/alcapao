@@ -102,6 +102,17 @@ describe('RemoteInputs', () => {
     r.set('P2', { x: 0, z: -1 }, 0);
     expect(r.next().get('P2')?.move).toEqual({ x: 0, z: -1 });
   });
+
+  test('resetPending zera empurrões pendentes e move, mas guarda a contagem', () => {
+    const r = new RemoteInputs();
+    r.set('P2', { x: 1, z: 0 }, 2);
+    r.resetPending();
+    expect(r.next().get('P2')).toEqual({ move: { x: 0, z: 0 }, push: false });
+    r.set('P2', PARADO, 2); // mesma contagem: nada novo
+    expect(r.next().get('P2')?.push).toBe(false);
+    r.set('P2', PARADO, 3);
+    expect(r.next().get('P2')?.push).toBe(true);
+  });
 });
 
 describe('admit', () => {
