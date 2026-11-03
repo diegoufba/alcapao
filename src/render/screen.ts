@@ -28,11 +28,17 @@ void main() {
   vec4 tex = texture2D(uMap, vUv);
   vec3 col = tex.rgb;
 
-  // Grade sutil de LEDs / scanlines do telão de TV
-  vec2 grid = fract(vUv * vec2(320.0, 120.0)) - 0.5;
+  // Grade sutil de LEDs / scanlines do telão de TV. Some quando cada célula ocupa poucos pixels na tela,
+  // senão vira moiré (faixas horizontais sobre o texto).
+  vec2 cells = vUv * vec2(320.0, 120.0);
+  vec2 cellPx = fwidth(cells);
+  float gridFade = 1.0 - smoothstep(0.2, 0.4, max(cellPx.x, cellPx.y));
+  vec2 grid = fract(cells) - 0.5;
   float cell = 1.0 - smoothstep(0.32, 0.5, max(abs(grid.x), abs(grid.y)));
-  float scan = 0.96 + 0.04 * sin(vUv.y * 600.0 * 3.14159);
-  col *= mix(0.93, 1.03, cell) * scan;
+  float lines = vUv.y * 300.0;
+  float scanFade = 1.0 - smoothstep(0.2, 0.4, fwidth(lines));
+  float scan = 0.96 + 0.04 * sin(lines * 6.28318);
+  col *= mix(1.0, mix(0.93, 1.03, cell), gridFade) * mix(1.0, scan, scanFade);
 
   // Reflexo diagonal suave (sheen) passando pela tela periodicamente
   float sweepPos = mod(uTime * 0.45, 3.2) - 0.8;
