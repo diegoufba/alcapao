@@ -49,16 +49,18 @@ export function createJoin({ keyboard, touchMode, isPadConnected, onStart, onBac
   const picker = createModePicker(() => {});
   const start = button('btn btn-accent', 'COMEÇAR', () => tryStart());
 
+  const lead = h('p', 'lead', '');
   const hint = h('span', 'hint', '');
   const { el } = stage('join',
     h('div', 'join-head', '', h('h1', 'title', 'QUEM VAI JOGAR?'),
-      h('p', 'lead', 'Aperte qualquer tecla do seu grupo ou um botão do controle para entrar')),
+      lead),
     cards,
     picker.el,
     h('div', 'join-foot', '', start, hint));
 
   function render(): void {
     const touchOn = touchMode.isOn();
+    lead.textContent = touchOn ? 'Você joga sozinho no celular' : 'Aperte qualquer tecla do seu grupo ou um botão do controle para entrar';
     hint.textContent = touchOn ? 'Toque em COMEÇAR' : 'P1 aperta Espaço ou Start · Esc / B volta ao menu';
     cards.replaceChildren(...SLOTS.map((id) => {
       const d = devices.deviceOf(id);
@@ -69,7 +71,7 @@ export function createJoin({ keyboard, touchMode, isPadConnected, onStart, onBac
         const info = deviceInfo(d);
         c.append(img, h('span', 'slot-title', `${id} · ${info.dev}`), h('span', 'slot-detail', info.keys), h('span', 'badge', 'PRONTO'));
       } else {
-        c.append(img, h('span', 'slot-title is-free', 'Vaga livre'), 
+        c.append(img, h('span', 'slot-title is-free', 'Vaga livre'),
           h('span', 'slot-detail', touchOn ? 'Só 1 jogador no celular' : 'WASD · Setas · IJKL\nou qualquer controle'));
       }
       return c;
