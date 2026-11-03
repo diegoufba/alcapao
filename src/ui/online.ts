@@ -1,5 +1,5 @@
 import { button, h, stage, type ScreenCtl } from './dom';
-import { emitUi, type Nav } from './nav';
+import { emitUi, KEY_DIRS, type Nav } from './nav';
 import { normalizeRoomCode, ROOM_CODE_LENGTH } from '../net/room-code';
 
 /** `show({ code })` preenche o campo; `connecting` já abre no "Conectando…" (atalhos de desenvolvimento). */
@@ -74,6 +74,19 @@ export function createOnline({ nav, onCreate, onJoin, onBack }: OnlineDeps): Onl
 
   const back = (): void => { emitUi('voltar'); onBack(); };
 
+  /**
+   * Teclado: ordem fixa CRIAR SALA → campo → ENTRAR (pulando o que estiver desativado), em vez da busca
+   * geométrica do nav, que com os dois cartões lado a lado não achava o campo pela seta para baixo e não saía dele.
+   */
+  function step(delta: 1 | -1): boolean {
+    const order = [create, input, enter].filter((x) => !x.disabled);
+    if (order.length === 0) return true;
+    const i = order.indexOf(document.activeElement as HTMLButtonElement | HTMLInputElement);
+    const next = order[i < 0 ? 0 : (i + delta + order.length) % order.length];
+    if (next !== document.activeElement) { next.focus(); emitUi('navegar'); }
+    return true;
+  }
+
   return {
     el,
     show(params) {
@@ -89,13 +102,23 @@ export function createOnline({ nav, onCreate, onJoin, onBack }: OnlineDeps): Onl
     },
     hide() { el.hidden = true; },
     key(code) {
-      if (document.activeElement === input) {
+      const a = document.activeElement;
+      if (a === input) {
         if (code === 'Enter' || code === 'NumpadEnter') { tryJoin(); return true; }
         if (code === 'Escape') { back(); return true; }
-        if (code === 'ArrowUp' || code === 'ArrowDown') return nav.key(code);
+        if (code === 'ArrowUp') return step(-1);
+        if (code === 'ArrowDown' || code === 'Tab') return step(1);
         return false; // letras, Backspace, setas laterais: com o campo
       }
-      return nav.key(code);
+      if (code === 'Enter' || code === 'NumpadEnter' || code === 'Space') {
+        if (a instanceof HTMLButtonElement && st.contains(a) && !a.disabled) a.click();
+        return true;
+      }
+      if (code === 'Escape') { back(); return true; }
+      const dir = KEY_DIRS[code];
+      if (dir) return step(dir === 'down' || dir === 'right' ? 1 : -1);
+      if (code === 'Tab') return step(1);
+      return false;
     },
   };
 }

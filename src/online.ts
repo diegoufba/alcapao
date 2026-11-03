@@ -97,6 +97,7 @@ export function createOnlineFlow(deps: OnlineDeps): OnlineFlow {
         throw err;
       }
       online = { kind: 'host', session };
+      console.info('[online] sala', room.code);
       session.onLobby((l) => {
         if (online?.session === session && router.current() === 'lobby') deps.lobbyChanged(l);
       });

@@ -15,8 +15,11 @@ export interface ModePicker {
   get(): { mode: Mode; rounds: Rounds };
   /** Troca a escolha sem avisar `onChange` e volta o anel para a linha do modo. */
   set(mode: Mode, rounds: Rounds): void;
-  /** Direcional: cima/baixo escolhe a linha (só em Pontos), esquerda/direita troca o valor. */
-  dir(d: Dir): void;
+  /**
+   * Direcional: cima/baixo escolhe a linha (só em Pontos), esquerda/direita troca o valor.
+   * Só soa e avisa `onChange` quando algo muda; devolve se mudou (no limite, false).
+   */
+  dir(d: Dir): boolean;
   /** Desligado, os chips só mostram a escolha (cliente online). */
   setEditable(on: boolean): void;
   /** Mostra o anel na linha que os direcionais controlam. */
@@ -68,20 +71,29 @@ export function createModePicker(onChange: (mode: Mode, rounds: Rounds) => void)
     get: () => ({ mode, rounds }),
     set(m, r) { mode = m; rounds = r; row = 'mode'; render(); },
     dir(d) {
-      if (!editable) return;
+      if (!editable) return false;
       if (d === 'up' || d === 'down') {
-        if (mode === 'points') { row = d === 'down' ? 'rounds' : 'mode'; emitUi('navegar'); render(); }
-        return;
+        const next = d === 'down' ? 'rounds' : 'mode';
+        if (mode !== 'points' || next === row) return false;
+        row = next;
+        emitUi('navegar');
+        render();
+        return true;
       }
       const step = d === 'right' ? 1 : -1;
       if (row === 'mode') {
         const i = MODES.findIndex((m) => m.id === mode);
-        mode = MODES[Math.min(Math.max(i + step, 0), MODES.length - 1)].id;
+        const next = MODES[Math.min(Math.max(i + step, 0), MODES.length - 1)].id;
+        if (next === mode) return false;
+        mode = next;
       } else {
         const i = ROUNDS.indexOf(rounds);
-        rounds = ROUNDS[Math.min(Math.max(i + step, 0), ROUNDS.length - 1)];
+        const next = ROUNDS[Math.min(Math.max(i + step, 0), ROUNDS.length - 1)];
+        if (next === rounds) return false;
+        rounds = next;
       }
       changed();
+      return true;
     },
     setEditable(on) { editable = on; render(); },
     showRow(on) { rowVisible = on; render(); },

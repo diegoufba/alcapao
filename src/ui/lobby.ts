@@ -124,7 +124,6 @@ export function createLobby({ onStart, onOptions, onLeave }: LobbyDeps): LobbySc
     },
     key(code) {
       if (code === 'Escape') { leave(); return true; }
-      if (code === 'KeyC') { copyLink(); return true; }
       if (!p.host) return false;
       if (code === 'Space' || code === 'Enter' || code === 'NumpadEnter') { tryStart(); return true; }
       const dir = KEY_DIRS[code];

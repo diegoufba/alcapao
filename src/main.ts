@@ -246,6 +246,9 @@ async function runGame(): Promise<void> {
     if (pendingRoom === null) { router.go('menu'); return; }
     const code = normalizeRoomCode(pendingRoom) ?? '';
     pendingRoom = null;
+    const url = new URL(location.href); // usado: recarregar a página não volta para a tela Online
+    url.searchParams.delete('sala');
+    history.replaceState(null, '', url);
     router.go('online', { code });
   }
 
@@ -272,7 +275,8 @@ async function runGame(): Promise<void> {
     }
     if (typing && s === 'online') { if (onlineScreen.key(e.code)) e.preventDefault(); return; } // letras repetidas também
     const isDir = e.code.startsWith('Arrow') || e.code === 'KeyW' || e.code === 'KeyA' || e.code === 'KeyS' || e.code === 'KeyD';
-    if (e.repeat && !(isDir && s !== 'join')) { if (e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape') e.preventDefault(); return; }
+    // na entrada e no lobby, nem as direcionais repetem (no lobby, cada troca vai pela rede a todos)
+    if (e.repeat && !(isDir && s !== 'join' && s !== 'lobby')) { if (e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape') e.preventDefault(); return; }
     if (s === 'join') { if (join.key(e.code)) e.preventDefault(); return; }
     if (s === 'lobby') { if (lobby.key(e.code)) e.preventDefault(); return; }
     if (s === 'online') { if (onlineScreen.key(e.code)) e.preventDefault(); return; }

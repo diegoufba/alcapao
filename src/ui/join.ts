@@ -1,5 +1,5 @@
 import { button, h, portrait, stage, type ScreenCtl } from './dom';
-import { emitUi, KEY_DIRS, type PadEvent } from './nav';
+import { emitUi, KEY_DIRS, type Dir, type PadEvent } from './nav';
 import { createModePicker } from './mode-picker';
 import { DeviceSlots } from '../input/devices';
 import { applyPadChanges, pruneDisconnected } from '../input/connection';
@@ -90,6 +90,11 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
     if (ps.length > 0) removePlayer(ps[ps.length - 1]);
   }
 
+  /** O dispositivo de P1 muda modo e rodadas. Na entrada, bater no limite também soa (como antes da extração). */
+  function p1Dir(dir: Dir): void {
+    if (!picker.dir(dir) && (dir === 'left' || dir === 'right' || picker.get().mode === 'points')) emitUi('navegar');
+  }
+
   function tryStart(): void {
     const players = devices.players();
     if (players.length === 0) return;
@@ -124,7 +129,7 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
         const g = KEY_GROUPS.find((k) => k.id === d);
         const dir = KEY_DIRS[code];
         // só as quatro teclas de direção do próprio grupo de P1 contam (não o empurrar)
-        if (g && dir && [g.up, g.down, g.left, g.right].includes(code)) picker.dir(dir);
+        if (g && dir && [g.up, g.down, g.left, g.right].includes(code)) p1Dir(dir);
       }
       return true;
     },
@@ -140,7 +145,7 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
           if (a.type === 'menu') { emitUi('voltar'); onBack(); return; }
           if (a.type === 'leave') removePlayer(a.player);
         } else if (d === p1 && e.kind === 'start') { tryStart(); return; }
-        else if (d === p1 && (e.kind === 'up' || e.kind === 'down' || e.kind === 'left' || e.kind === 'right')) picker.dir(e.kind);
+        else if (d === p1 && (e.kind === 'up' || e.kind === 'down' || e.kind === 'left' || e.kind === 'right')) p1Dir(e.kind);
       }
     },
     padDisconnected(d) {
