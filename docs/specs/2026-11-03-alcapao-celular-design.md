@@ -30,7 +30,7 @@ No PC, nada muda.
 |---|---|
 | Controle | **Analógico virtual flutuante** à esquerda e **botão EMPURRAR** à direita |
 | Orientação | Só **paisagem** (16:9, como hoje). Em retrato, o aviso "Gire o celular" cobre a tela |
-| Offline no toque | **1 jogador**. P1 entra sozinho com o dispositivo de toque |
+| Offline no toque | **1 jogador**. P1 entra sozinho com o dispositivo de toque. Com um jogador de toque na sala, ninguém mais entra; o P1 de toque automático é trocado se outro dispositivo for usado |
 | Quando vale o "modo toque" | Liga no **primeiro toque real** (`pointerType === 'touch'`). Desliga ao chegar input de teclado ou gamepad |
 | Pausa | Botão de pausa na tela, no lugar do Esc. No online, abre o overlay que não pausa |
 | Tela cheia | No primeiro toque, tenta tela cheia e travar em paisagem. Onde não houver suporte (iOS), vale só o aviso |
@@ -62,7 +62,7 @@ Os controles só aparecem com o modo toque ligado e só na tela da partida.
 - **Tela inicial e menus:** já respondem a toque, porque os botões são clicáveis. O primeiro toque também acorda o áudio, como já acontece com `pointerdown`.
 - **Entrada (offline):**
   - P1 entra sozinho com o dispositivo `touch` assim que a tela abre;
-  - nenhum outro dispositivo entra enquanto o modo toque estiver ligado;
+  - com um jogador de toque na sala, ninguém mais entra; o P1 de toque automático é trocado se outro dispositivo (teclado ou gamepad) for usado, sem criar P2;
   - as vagas 2 a 4 mostram "Só 1 jogador no celular";
   - a dica muda para "Toque em COMEÇAR";
   - modo e rodadas são escolhidos tocando nos chips.
@@ -159,4 +159,9 @@ Desvios em relação ao que está escrito acima:
 - **Teclado virtual:** teclas digitadas num campo de texto não desligam o modo toque (§2).
 - **Textos da entrada (§4):** o topo da tela de entrada no toque diz "Você joga sozinho no celular". O rodapé é "Toque em COMEÇAR".
 - **Tablet híbrido:** quando o toque liga, jogadores de teclado ou gamepad que já estavam na entrada não são removidos. O P1 de toque só entra com a sala vazia.
+- **Regra de 1 jogador (§2, §4):** a regra olha "há um jogador `touch` na sala", e não o modo toque, porque tecla e botão de gamepad desligam o modo antes de entrar. `canJoin(players, device, hasTouch)` e `joinAction(players, p1Device, device)` em `ui/join-logic.ts`. Os textos "Você joga sozinho no celular" e "Só 1 jogador no celular" seguem a mesma regra.
+- **Voltar e sair no toque:** a entrada e a tela Online ganham o botão VOLTAR e o lobby ganha FECHAR SALA (host) ou SAIR DA SALA (cliente). Só aparecem com `body.is-touch`; os rodapés "Esc / B …" somem no toque.
+- **Controles só para o P1 de toque (§3):** no offline, os controles na tela só aparecem se o P1 da partida for o `touch` (`body.touch-local`). No online, aparecem sempre com o toque ligado.
+- **Áudio:** o `wakeAudio` roda também no `pointerup`, porque o `pointerdown` de toque não dá ativação de usuário e o `AudioContext` ficaria suspenso.
+- **Textos de teclado:** na press-start, com `pointer: coarse`, a chamada vira "TOQUE PARA COMEÇAR" e a legenda Teclado/Gamepad some. Na pausa, "Esc / Start continua" some no toque.
 - **Atalho de DEV:** `?quick=...&touch` (ou `pointer: coarse`) faz o P1 usar o dispositivo de toque.
