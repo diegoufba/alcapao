@@ -167,3 +167,11 @@ export function decodeHost(raw: string): HostMsg | null {
     default: return null;
   }
 }
+
+/**
+ * Segundos sem receber nada de um par até considerá-lo caído. Fechar a aba nem sempre derruba o WebRTC
+ * (o PeerJS só fecha em ICE 'failed', que pode demorar ou nunca vir), então a queda vem do silêncio.
+ * Os clientes mandam ping a cada 1 s e input a 5 Hz, e o host manda snapshots a 30 Hz e pong:
+ * 8 s cobrem soluços de rede e abas em segundo plano (timers limitados a ~1 Hz) sem deixar um fantasma por muito tempo.
+ */
+export const SILENCE_TIMEOUT_S = 8;

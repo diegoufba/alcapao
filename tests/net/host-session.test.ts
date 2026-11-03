@@ -1,6 +1,6 @@
-import { test, expect, describe } from 'vitest';
+import { test, expect, describe, vi, afterEach } from 'vitest';
 import { createHostSession } from '../../src/net/host-session';
-import { bankHash, decodeHost, encode, PROTOCOL_VERSION } from '../../src/net/protocol';
+import { bankHash, decodeHost, encode, PROTOCOL_VERSION, SILENCE_TIMEOUT_S } from '../../src/net/protocol';
 import type { HostMsg } from '../../src/net/protocol';
 import { createGame } from '../../src/core/game';
 import type { Channel } from '../../src/net/transport';
@@ -9,6 +9,8 @@ import { createFakeRoom } from './fake-link';
 import type { FakeLink } from './fake-link';
 
 const BANK = bank();
+
+afterEach(() => { vi.useRealTimers(); });
 
 function setup() {
   const room = createFakeRoom();
@@ -268,5 +270,50 @@ describe('HostSession', () => {
     expect(a.got.at(-1)!.msg).toEqual({ t: 'closed' });
     expect(a.link.closed).toBe(true);
     expect(room.closed).toBe(true);
+  });
+
+  describe('silêncio', () => {
+    test(`libera a vaga no lobby depois de ${SILENCE_TIMEOUT_S} s sem mensagens, e não antes`, () => {
+      vi.useFakeTimers();
+      const { room, host } = setup();
+      const a = join(room);
+      vi.advanceTimersByTime(7900);
+      expect(host.lobby().players).toEqual(['P1', 'P2']);
+      expect(a.link.closed).toBe(false);
+      vi.advanceTimersByTime(200);
+      expect(host.lobby().players).toEqual(['P1']);
+      expect(a.link.closed).toBe(true);
+      host.close();
+    });
+
+    test('na partida, silêncio marca desconectado e manda left', () => {
+      vi.useFakeTimers();
+      const { room, host } = setup();
+      const a = join(room);
+      const b = join(room);
+      host.start(1);
+      for (let t = 0; t < 10; t++) { // só o P3 continua falando
+        vi.advanceTimersByTime(1000);
+        b.link.send('ctl', encode({ t: 'ping', at: t }));
+      }
+      expect(a.link.closed).toBe(true);
+      expect(host.isConnected('P2')).toBe(false);
+      expect(host.isConnected('P3')).toBe(true);
+      expect(b.got.some((g) => g.msg.t === 'left' && g.msg.id === 'P2')).toBe(true);
+      host.close();
+    });
+
+    test('mensagens regulares mantêm a conexão viva', () => {
+      vi.useFakeTimers();
+      const { room, host } = setup();
+      const a = join(room);
+      for (let t = 0; t < 30; t++) {
+        vi.advanceTimersByTime(1000);
+        a.link.send('ctl', encode({ t: 'ping', at: t }));
+      }
+      expect(a.link.closed).toBe(false);
+      expect(host.lobby().players).toEqual(['P1', 'P2']);
+      host.close();
+    });
   });
 });

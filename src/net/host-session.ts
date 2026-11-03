@@ -3,7 +3,7 @@ import type { Mode, PlayerId, Question } from '../core/types';
 import type { HudSlots } from '../input/match-input';
 import type { LocalHooks } from '../sim/local';
 import { admit, RemoteInputs } from './host-rules';
-import { bankHash, decodeClient, encode } from './protocol';
+import { bankHash, decodeClient, encode, SILENCE_TIMEOUT_S } from './protocol';
 import type { HostMsg, LobbyInfo, Rounds } from './protocol';
 import type { HostRoom, Link } from './transport';
 
@@ -26,6 +26,7 @@ const ORDER: readonly PlayerId[] = ['P1', 'P2', 'P3', 'P4'];
 const SNAP_EVERY = 2; // ticks: 30 Hz
 /** Tempo para a recusa chegar antes de o host fechar a conexão (o cliente costuma fechar antes). */
 const REJECT_CLOSE_MS = 2000;
+const SILENCE_CHECK_MS = 1000;
 
 export function createHostSession(room: HostRoom, bank: Question[]): HostSession {
   const build = bankHash(bank);
@@ -39,6 +40,11 @@ export function createHostSession(room: HostRoom, bank: Question[]): HostSession
   const remote = new RemoteInputs(); // pushCount é por conexão: nunca zera entre partidas
   let lastSnapTick: number | null = null;
   const lobbyCbs: ((l: LobbyInfo) => void)[] = [];
+  const lastHeard = new Map<Link, number>(); // Date.now() da última mensagem de cada conexão aberta
+  const silence = setInterval(() => {
+    const now = Date.now();
+    for (const [link, at] of [...lastHeard]) if (now - at >= SILENCE_TIMEOUT_S * 1000) link.close();
+  }, SILENCE_CHECK_MS);
 
   const lobby = (): LobbyInfo => ({ players: [...players], mode, rounds, started });
 
@@ -55,9 +61,12 @@ export function createHostSession(room: HostRoom, bank: Question[]): HostSession
 
   room.onLink((link) => {
     let rejected = false;
+    lastHeard.set(link, Date.now());
 
     link.onMessage((ch, data) => {
-      if (closed || ch !== 'ctl' || rejected) return;
+      if (closed) return;
+      if (lastHeard.has(link)) lastHeard.set(link, Date.now());
+      if (ch !== 'ctl' || rejected) return;
       const msg = decodeClient(data);
       if (!msg) return;
       const id = members.get(link);
@@ -96,6 +105,7 @@ export function createHostSession(room: HostRoom, bank: Question[]): HostSession
     });
 
     link.onClose(() => {
+      lastHeard.delete(link);
       const id = members.get(link);
       if (closed || id === undefined) return;
       members.delete(link);
@@ -160,6 +170,8 @@ export function createHostSession(room: HostRoom, bank: Question[]): HostSession
       if (closed) return;
       broadcast({ t: 'closed' });
       closed = true;
+      clearInterval(silence);
+      lastHeard.clear();
       for (const link of [...members.keys()]) link.close();
       members.clear();
       room.close();

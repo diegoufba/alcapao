@@ -132,6 +132,8 @@ async function runGame(): Promise<void> {
   let activeDevices: DeviceSlots | null = null; // jogadores da partida em andamento
   /** Sessão online ativa (host ou cliente); null no offline. */
   let online: { kind: 'host'; session: HostSession } | { kind: 'client'; session: ClientSession } | null = null;
+  /** A partida atual (e a tela de resultados dela) é online. Nasce na entrada em `match` e morre fora de match/results. */
+  let matchOnline = false;
 
   /** Fecha a sessão online, se houver, e volta ao offline. */
   function leaveOnline(): void {
@@ -142,7 +144,7 @@ async function runGame(): Promise<void> {
 
   // --- telas ---------------------------------------------------------------
   const pressStart = createPressStart();
-  const menu = createMenu({ nav, storage, onPlay: () => router.go('join'), onOptions: () => router.go('options') });
+  const menu = createMenu({ nav, storage, onPlay: () => { leaveOnline(); router.go('join'); }, onOptions: () => router.go('options') });
   const options = createOptions({
     nav,
     get: () => audioSettings,
@@ -161,10 +163,10 @@ async function runGame(): Promise<void> {
     storage,
     onAgain: () => {
       // online: o host volta todos ao lobby (espera o Espaço); o cliente só espera o próximo 'start'
-      if (online?.kind === 'host') { online.session.backToLobby(); router.go('menu'); }
-      else if (!online) router.go('join', { keep: true });
+      if (!matchOnline) router.go('join', { keep: true });
+      else if (online?.kind === 'host') { online.session.backToLobby(); router.go('menu'); }
     },
-    onMenu: () => { leaveOnline(); router.go('menu'); },
+    onMenu: () => { if (matchOnline) leaveOnline(); router.go('menu'); },
   });
   const pause = createPause(nav, resumeMatch, () => { resumeMatch(); router.go('menu'); });
   const errorScreen = createError(nav);
@@ -173,7 +175,7 @@ async function runGame(): Promise<void> {
   ui.append(pressStart.el, menu.el, options.el, join.el, results.el, pause.el, errorScreen.el);
 
   function pauseMatch(): void {
-    if (online) return; // online não pausa
+    if (matchOnline) return; // online não pausa
     if (router.current() !== 'match' || match.isPaused() || match.isOver() || overTimer >= 0) return;
     match.pause();
     pause.show();
@@ -192,14 +194,16 @@ async function runGame(): Promise<void> {
     hudRoot.classList.toggle('is-hidden', s !== 'match');
     activeDevices = null;
     if (s === 'match') {
-      const { source, input, devices } = p as { source: SimSource; input: MatchInput; devices?: DeviceSlots };
+      const { source, input, devices, online: isOnline } = p as { source: SimSource; input: MatchInput; devices?: DeviceSlots; online?: boolean };
       activeDevices = devices ?? null;
+      matchOnline = isOnline === true;
       overTimer = -1;
       match.start(source, input);
       nav.setActive(null);
     } else if (from === 'match') {
       match.stop();
     }
+    if (s !== 'match' && s !== 'results') matchOnline = false;
     screens[s].show(p);
   });
 
@@ -331,7 +335,7 @@ async function runGame(): Promise<void> {
     const { session } = online;
     const config = session.start(Date.now());
     if (!config) { console.info('[online] precisa de 2 jogadores ou mais para começar'); return; }
-    router.go('match', { source: createLocalSource(config, bank, session.hooks()), input: anyDeviceInput('P1', keyboard, gamepad, session) });
+    router.go('match', { source: createLocalSource(config, bank, session.hooks()), input: anyDeviceInput('P1', keyboard, gamepad, session), online: true });
   }
 
   function netErrorText(err: unknown): string {
@@ -357,11 +361,21 @@ async function runGame(): Promise<void> {
     errorScreen.show(text);
   }
 
+  /** O atalho só assume a sessão se a pessoa ainda estiver esperando (press-start ou menu). */
+  const stillWaiting = (): boolean => router.current() === 'press-start' || router.current() === 'menu';
+
   async function startOnlineDev(kind: string | null): Promise<void> {
     try {
       if (kind === 'host') {
         const room = await hostRoom();
-        const session = createHostSession(room, bank);
+        let session: HostSession;
+        try {
+          session = createHostSession(room, bank);
+        } catch (err) {
+          room.close();
+          throw err;
+        }
+        if (!stillWaiting()) { session.close(); return; } // foi jogar offline enquanto a sala abria
         online = { kind: 'host', session };
         console.info('[online] sala', room.code);
         const show = () => {
@@ -374,16 +388,18 @@ async function runGame(): Promise<void> {
         const code = normalizeRoomCode(params.get('sala') ?? '');
         if (!code) throw new NetError('not-found');
         const session = await joinSession(await joinRoom(code), bank);
+        if (!stillWaiting()) { session.close(); return; }
         online = { kind: 'client', session };
         devEl.textContent = `Sala ${code} · você é ${session.you} · esperando o host`;
         session.onStart(() => {
-          router.go('match', { source: session.source(), input: anyDeviceInput(session.you, keyboard, gamepad, session) });
+          if (online?.session !== session) return; // sessão já fechada: não sequestra a tela
+          router.go('match', { source: session.source(), input: anyDeviceInput(session.you, keyboard, gamepad, session), online: true });
         });
         session.onClosed(() => { if (online?.session === session) onlineFailed('A conexão com o host caiu.'); });
       }
     } catch (err) {
       console.warn('[online]', err);
-      onlineFailed(netErrorText(err));
+      if (stillWaiting()) onlineFailed(netErrorText(err));
     }
   }
   // avisa os outros na hora em vez de esperar o timeout da conexão

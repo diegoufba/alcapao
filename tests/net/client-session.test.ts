@@ -1,6 +1,6 @@
 import { test, expect, describe, vi, afterEach } from 'vitest';
 import { joinSession } from '../../src/net/client-session';
-import { bankHash, decodeClient, encode, PROTOCOL_VERSION } from '../../src/net/protocol';
+import { bankHash, decodeClient, encode, PROTOCOL_VERSION, SILENCE_TIMEOUT_S } from '../../src/net/protocol';
 import type { ClientMsg, HostMsg } from '../../src/net/protocol';
 import { NetError } from '../../src/net/transport';
 import { createSnapshotBuffer } from '../../src/net/snapshots';
@@ -76,6 +76,31 @@ describe('ClientSession', () => {
     session.onClosed((w) => why.push(w));
     hostSide.close();
     expect(why).toEqual(['host-left']);
+  });
+
+  test(`${SILENCE_TIMEOUT_S} s sem mensagens do host → onClosed host-left e fecha`, async () => {
+    vi.useFakeTimers();
+    const { session, clientSide } = await welcomed();
+    const why: string[] = [];
+    session.onClosed((w) => why.push(w));
+    vi.advanceTimersByTime(7900);
+    expect(why).toEqual([]);
+    vi.advanceTimersByTime(200);
+    expect(why).toEqual(['host-left']);
+    expect(clientSide.closed).toBe(true);
+  });
+
+  test('mensagens regulares do host mantêm a sessão viva', async () => {
+    vi.useFakeTimers();
+    const { session, say } = await welcomed();
+    const why: string[] = [];
+    session.onClosed((w) => why.push(w));
+    for (let t = 0; t < 30; t++) {
+      vi.advanceTimersByTime(1000);
+      say({ t: 'pong', at: Date.now() });
+    }
+    expect(why).toEqual([]);
+    session.close();
   });
 
   test('mensagem closed → onClosed host-left uma vez só', async () => {

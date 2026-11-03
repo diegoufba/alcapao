@@ -4,7 +4,7 @@ import type { HudSlots } from '../input/match-input';
 import { createRemoteSource } from '../sim/remote';
 import type { PushCounter } from '../sim/remote';
 import type { SimSource } from '../sim/source';
-import { bankHash, decodeHost, encode, PROTOCOL_VERSION } from './protocol';
+import { bankHash, decodeHost, encode, PROTOCOL_VERSION, SILENCE_TIMEOUT_S } from './protocol';
 import type { ClientMsg, LobbyInfo } from './protocol';
 import { createSnapshotBuffer } from './snapshots';
 import type { SnapshotBuffer } from './snapshots';
@@ -42,6 +42,14 @@ export function joinSession(link: Link, bank: Question[]): Promise<ClientSession
     let rtt = Infinity;
     let ended = false; // o link acabou (por nós ou pelo host)
     let ping: ReturnType<typeof setInterval> | null = null;
+    let lastHeard = Date.now();
+    // o host manda snapshots a 30 Hz e responde o ping de 1 s: silêncio longo = host caído (mesmo que o WebRTC não perceba)
+    let silence: ReturnType<typeof setInterval> | null = setInterval(() => {
+      if (Date.now() - lastHeard >= SILENCE_TIMEOUT_S * 1000) {
+        hostLeft();
+        link.close();
+      }
+    }, 1000);
     const left = new Set<PlayerId>();
     const lobbyCbs: ((l: LobbyInfo) => void)[] = [];
     const startCbs: ((c: GameConfig) => void)[] = [];
@@ -53,6 +61,8 @@ export function joinSession(link: Link, bank: Question[]): Promise<ClientSession
       ended = true;
       if (ping !== null) clearInterval(ping);
       ping = null;
+      if (silence !== null) clearInterval(silence);
+      silence = null;
     };
 
     const hostLeft = () => {
@@ -66,6 +76,7 @@ export function joinSession(link: Link, bank: Question[]): Promise<ClientSession
 
     link.onMessage((_ch, data) => {
       if (ended) return;
+      lastHeard = Date.now();
       const msg = decodeHost(data);
       if (!msg) return;
 
