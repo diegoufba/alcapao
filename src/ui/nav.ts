@@ -127,7 +127,7 @@ export function createNav(): Nav {
 
   type Item = HTMLButtonElement | HTMLInputElement
   const items = (): Item[] =>
-    root ? [...root.querySelectorAll<Item>('button, input[type="range"]')].filter((b) => !b.disabled && b.getClientRects().length > 0) : [];
+    root ? [...root.querySelectorAll<Item>('button, input[type="range"], input[type="text"]')].filter((b) => !b.disabled && b.getClientRects().length > 0) : [];
   const rectOf = (b: HTMLElement): Rect => b.getBoundingClientRect();
 
   /** Esquerda/direita num controle deslizante em foco muda o valor em vez de mudar o foco. */

@@ -43,12 +43,6 @@ html, body { margin: 0; height: 100%; background: var(--sky); color: var(--text)
   font: 600 13px monospace; color: var(--yellow); display: none; pointer-events: none;
 }
 .fps.is-on { display: block; }
-.dev-online {
-  position: fixed; bottom: 8px; left: 10px; z-index: 10; padding: 3px 8px; border-radius: 6px; background: rgba(30, 26, 46, 0.75);
-  font: 600 13px monospace; color: var(--yellow); pointer-events: none;
-}
-.dev-online:empty { display: none; }
-
 .is-hidden { display: none !important; }
 body[data-screen="press-start"] #app canvas { filter: blur(5px) saturate(1.1) brightness(1.05); transform: scale(1.03); }
 
@@ -65,6 +59,7 @@ body[data-screen="press-start"] #app canvas { filter: blur(5px) saturate(1.1) br
 .screen-press-start { background: rgba(168, 228, 255, 0.45); }
 .screen-press-start::after, .screen-pause::after { display: none; }
 .screen-pause { background: rgba(168, 228, 255, 0.85); }
+.screen-pause.is-online { background: rgba(168, 228, 255, 0.6); } /* a partida segue: dá para ver por trás */
 .screen-results { background: repeating-conic-gradient(from 0deg at 50% 22%, #a8e4ff 0deg 10deg, #c4edff 10deg 20deg); }
 .stage {
   position: absolute; left: 50%; top: 50%; width: 1280px; height: 720px; margin: -360px 0 0 -640px; z-index: 1;
@@ -91,6 +86,7 @@ body[data-screen="press-start"] #app canvas { filter: blur(5px) saturate(1.1) br
 }
 .btn-accent { background: var(--accent); color: #ffffff; font-family: var(--title) !important; font-size: 22px; height: 58px; padding: 0 36px; font-weight: 400; border-radius: 18px; box-shadow: 6px 6px 0 var(--ink); }
 .btn-big { height: 62px; font-size: 28px; }
+.btn[hidden] { display: none; }
 .menu-list { display: flex; flex-direction: column; gap: 14px; width: 360px; }
 .menu-list .btn { width: 100%; padding: 0; }
 
@@ -110,8 +106,9 @@ body[data-screen="press-start"] #app canvas { filter: blur(5px) saturate(1.1) br
 
 /* menu */
 .screen-menu { background: radial-gradient(ellipse 105px 28px at 185px 88px, #fff 98%, transparent), radial-gradient(ellipse 50px 36px at 180px 68px, #fff 98%, transparent), radial-gradient(ellipse 95px 25px at calc(100% - 185px) 115px, #fff 98%, transparent), radial-gradient(ellipse 42px 30px at calc(100% - 190px) 96px, #fff 98%, transparent), var(--sky); }
-.screen-menu .stage { gap: 28px; }
-.menu-chars { display: flex; gap: 4px; margin-bottom: -44px; }
+.screen-menu .stage { gap: 12px; }
+.screen-menu .menu-list { gap: 11px; } /* cinco botões: mais justos para a dica não descer demais */
+.menu-chars { display: flex; gap: 4px; margin-bottom: -60px; }
 .menu-chars img { width: 120px; height: 144px; display: block; }
 .menu-title { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .logo { font-size: 100px; line-height: 1; color: var(--accent); -webkit-text-stroke: 8px var(--ink); text-shadow: 8px 10px 0 var(--ink); }
@@ -172,6 +169,49 @@ body[data-screen="press-start"] #app canvas { filter: blur(5px) saturate(1.1) br
 .mode-hint { font-size: 14px; font-weight: 800; color: var(--muted); max-width: 290px; line-height: 1.4; }
 .join-foot { display: flex; align-items: center; gap: 24px; margin-top: auto; }
 .join-foot .hint { font-size: 15px; font-weight: 900; }
+/* escolha só para leitura (cliente online): os chips não respondem, mas a escolha fica nítida */
+.opts.is-readonly .chip:disabled { opacity: 1; }
+.opts.is-readonly .chip:not(.is-on) { color: var(--muted); border-color: var(--muted); }
+/* "Aguardando o host…" no lugar do botão */
+.waiting {
+  display: flex; align-items: center; height: 58px; box-sizing: border-box; padding: 0 28px; border-radius: 18px;
+  background: var(--card); border: 4px dashed var(--ink); font-family: var(--title); font-size: 22px; color: var(--muted);
+}
+.waiting[hidden] { display: none; }
+
+/* online: criar ou entrar */
+.screen-online .stage { gap: 28px; }
+.online-cards { display: flex; gap: 32px; }
+.online-card {
+  width: 420px; min-height: 290px; box-sizing: border-box; background: var(--card); border: 5px solid var(--ink); border-radius: 24px;
+  box-shadow: 8px 8px 0 var(--ink); padding: 26px 30px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;
+}
+.online-card h2 { margin: 0; font-family: var(--title); font-weight: 400; font-size: 28px; }
+.online-text { margin: 0; font-size: 15px; font-weight: 800; color: var(--muted); line-height: 1.45; }
+.online-card .btn { margin-top: auto; }
+.code-input {
+  width: 260px; height: 64px; box-sizing: border-box; border: 4px solid var(--ink); border-radius: 16px; background: #eef8ff; color: var(--ink);
+  font-family: var(--title); font-size: 36px; letter-spacing: 10px; text-align: center; text-indent: 10px; text-transform: uppercase;
+}
+.code-input::placeholder { color: var(--lilac-2); }
+.code-input:focus, .code-input:focus-visible { outline: 4px solid var(--yellow); outline-offset: 5px; }
+.code-input:disabled { opacity: 0.6; }
+.online-status { margin: 0; height: 24px; font-size: 18px; font-weight: 900; color: var(--ink); visibility: hidden; }
+.online-status.is-on { visibility: visible; animation: ps-pulse 1.1s ease-in-out infinite; }
+
+/* lobby */
+.screen-lobby .stage { justify-content: flex-start; padding: 28px 64px 28px; gap: 16px; }
+.screen-lobby .slot { height: 286px; }
+.screen-lobby .slot img { width: 130px; height: 156px; }
+.lobby-head { display: flex; align-items: center; gap: 28px; }
+.room-code {
+  display: flex; align-items: center; gap: 14px; background: var(--card); border: 4px solid var(--ink); box-shadow: 5px 5px 0 var(--ink);
+  border-radius: 18px; padding: 4px 22px;
+}
+.room-code-label { font-size: 15px; font-weight: 900; color: var(--muted); }
+.room-code-value { font-family: var(--title); font-size: 46px; letter-spacing: 8px; color: var(--accent); text-shadow: 3px 3px 0 var(--ink); }
+.lobby-link { margin: 0; min-height: 22px; font-size: 16px; font-weight: 900; color: var(--ink); }
+.lobby-url { font-weight: 800; color: var(--muted); user-select: all; -webkit-user-select: all; background: var(--card); border-radius: 8px; padding: 1px 8px; }
 
 /* resultados */
 .screen-results .stage { justify-content: flex-start; padding: 48px 64px 40px; gap: 30px; }

@@ -3,7 +3,7 @@ import type { Nav } from './nav';
 import { getRecord, type RecordKey } from '../records';
 import type { StorageLike } from '../storage';
 
-interface MenuDeps { nav: Nav; storage: StorageLike; onPlay(): void; onOptions(): void }
+interface MenuDeps { nav: Nav; storage: StorageLike; onPlay(): void; onOnline(): void; onOptions(): void }
 
 function table(head: string[], rows: string[][]): HTMLTableElement {
   const t = h('table', 'tbl');
@@ -35,11 +35,12 @@ function howToPlay(): HTMLElement[] {
   ];
 }
 
-export function createMenu({ nav, storage, onPlay, onOptions }: MenuDeps): ScreenCtl {
+export function createMenu({ nav, storage, onPlay, onOnline, onOptions }: MenuDeps): ScreenCtl {
   let opener: HTMLElement | null = null;
 
   const play = button('btn btn-accent btn-big', 'JOGAR', onPlay);
   play.dataset.autofocus = '';
+  const online = button('btn btn-alt', 'Jogar online', onOnline);
   const how = button('btn btn-alt', 'Como jogar', () => openPanel(how, howPanel));
   const opts = button('btn btn-alt', 'Opções', onOptions);
   const recs = button('btn btn-alt', 'Recordes', () => openPanel(recs, recordsPanel));
@@ -63,7 +64,7 @@ export function createMenu({ nav, storage, onPlay, onOptions }: MenuDeps): Scree
     h('div', 'menu-title', '',
       h('h1', 'logo', 'ALÇAPÃO'),
       h('p', 'tagline', 'Quiz de sobrevivência para 1 a 4 jogadores')),
-    h('nav', 'menu-list', '', play, how, opts, recs),
+    h('nav', 'menu-list', '', play, online, how, opts, recs),
     h('p', 'hint', 'Enter / Start para escolher · Setas ou analógico para navegar'),
     h('p', 'audio-hint', AUDIO_HINT));
   (st.querySelector('nav') as HTMLElement).setAttribute('aria-label', 'Menu principal');

@@ -1,4 +1,4 @@
-export type Screen = 'press-start' | 'menu' | 'options' | 'join' | 'match' | 'results';
+export type Screen = 'press-start' | 'menu' | 'options' | 'join' | 'match' | 'results' | 'online' | 'lobby';
 
 export interface Router {
   go(s: Screen, params?: unknown): void;

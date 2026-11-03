@@ -16,10 +16,7 @@ import { createMatchController } from './match';
 import { createLocalSource } from './sim/local';
 import type { SimSource } from './sim/source';
 import { deviceInput, type MatchInput } from './input/match-input';
-import { anyDeviceInput } from './input/any-input';
-import { hostRoom, joinRoom, NetError } from './net/transport';
-import { createHostSession, type HostSession } from './net/host-session';
-import { joinSession, type ClientSession } from './net/client-session';
+import { createOnlineFlow } from './online';
 import { normalizeRoomCode } from './net/room-code';
 import { createRouter, type Screen } from './ui/router';
 import { createNav, emitUi, onUiEvent, PadNav, type PadEvent } from './ui/nav';
@@ -27,7 +24,9 @@ import { createPressStart } from './ui/press-start';
 import { createMenu } from './ui/menu';
 import { createOptions } from './ui/options';
 import { createJoin } from './ui/join';
-import { createResults } from './ui/results';
+import { createResults, type ResultsParams } from './ui/results';
+import { createOnline } from './ui/online';
+import { createLobby } from './ui/lobby';
 import { createPause } from './ui/pause';
 import { createError } from './ui/error';
 import type { ScreenCtl } from './ui/dom';
@@ -65,11 +64,9 @@ async function runGame(): Promise<void> {
   hudRoot.className = 'is-hidden';
   const fpsEl = document.createElement('div');
   fpsEl.className = 'fps';
-  const devEl = document.createElement('div'); // código da sala nos atalhos de desenvolvimento do online
-  devEl.className = 'dev-online';
   const ui = document.createElement('div');
   ui.id = 'ui';
-  app.replaceChildren(canvas, hudRoot, fpsEl, ui, devEl);
+  app.replaceChildren(canvas, hudRoot, fpsEl, ui);
 
   await Promise.all([document.fonts.load('40px "Titan One"'), document.fonts.load('700 40px Nunito'), document.fonts.load('800 40px Nunito')]);
   const { renderer, scene, camera, resize, update: updateScene } = createScene(canvas);
@@ -130,21 +127,39 @@ async function runGame(): Promise<void> {
 
   let overTimer = -1; // contagem até a tela de resultados (<0 = inativa)
   let activeDevices: DeviceSlots | null = null; // jogadores da partida em andamento
-  /** Sessão online ativa (host ou cliente); null no offline. */
-  let online: { kind: 'host'; session: HostSession } | { kind: 'client'; session: ClientSession } | null = null;
   /** A partida atual (e a tela de resultados dela) é online. Nasce na entrada em `match` e morre fora de match/results. */
   let matchOnline = false;
-
-  /** Fecha a sessão online, se houver, e volta ao offline. */
-  function leaveOnline(): void {
-    online?.session.close();
-    online = null;
-    devEl.textContent = '';
-  }
+  /** O overlay de pausa (offline) ou o overlay online está aberto. */
+  let pauseOpen = false;
+  /** `?sala=CODIGO`: depois da press-start, vai à tela Online com o código (campo vazio se for inválido). */
+  let pendingRoom: string | null = params.get('sala');
 
   // --- telas ---------------------------------------------------------------
+  const errorScreen = createError(nav);
+  const online = createOnlineFlow({
+    bank,
+    keyboard,
+    gamepad,
+    router,
+    inputBlocked: () => pauseOpen,
+    lobbyChanged: (l) => lobby.update(l),
+    failed: showNetError,
+  });
+  /** Erro do online: vai ao menu (que encerra a sessão) com a tela de erro por cima; "Voltar ao menu" não recarrega. */
+  function showNetError(text: string): void {
+    router.go('menu');
+    document.body.dataset.screen = 'error';
+    errorScreen.show({ text, onBack: () => { errorScreen.hide(); router.go('menu'); } });
+  }
+
   const pressStart = createPressStart();
-  const menu = createMenu({ nav, storage, onPlay: () => { leaveOnline(); router.go('join'); }, onOptions: () => router.go('options') });
+  const menu = createMenu({
+    nav,
+    storage,
+    onPlay: () => router.go('join'),
+    onOnline: () => router.go('online'),
+    onOptions: () => router.go('options'),
+  });
   const options = createOptions({
     nav,
     get: () => audioSettings,
@@ -161,31 +176,44 @@ async function runGame(): Promise<void> {
   const results = createResults({
     nav,
     storage,
-    onAgain: () => {
-      // online: o host volta todos ao lobby (espera o Espaço); o cliente só espera o próximo 'start'
-      if (!matchOnline) router.go('join', { keep: true });
-      else if (online?.kind === 'host') { online.session.backToLobby(); router.go('menu'); }
-    },
-    onMenu: () => { if (matchOnline) leaveOnline(); router.go('menu'); },
+    // online: só o host tem "Jogar de novo", que leva todos ao lobby
+    onAgain: () => { if (matchOnline) online.backToLobby(); else router.go('join', { keep: true }); },
+    onMenu: () => router.go('menu'),
+  });
+  const onlineScreen = createOnline({
+    nav,
+    onCreate: () => { void online.host(); },
+    onJoin: (code) => { void online.join(code); },
+    onBack: () => router.go('menu'),
+  });
+  const lobby = createLobby({
+    onStart: () => online.start(),
+    onOptions: (mode, rounds) => online.setOptions(mode, rounds),
+    onLeave: () => router.go('menu'),
   });
   const pause = createPause(nav, resumeMatch, () => { resumeMatch(); router.go('menu'); });
-  const errorScreen = createError(nav);
   const noop: ScreenCtl = { el: document.createElement('div'), show() {}, hide() {} };
-  const screens: Record<Screen, ScreenCtl> = { 'press-start': pressStart, menu, options, join, match: noop, results };
-  ui.append(pressStart.el, menu.el, options.el, join.el, results.el, pause.el, errorScreen.el);
+  const screens: Record<Screen, ScreenCtl> = { 'press-start': pressStart, menu, options, join, match: noop, results, online: onlineScreen, lobby };
+  ui.append(pressStart.el, menu.el, options.el, join.el, onlineScreen.el, lobby.el, results.el, pause.el, errorScreen.el);
 
+  /** Esc / Start na partida: o offline pausa; o online só abre o overlay (o jogo segue por trás). */
   function pauseMatch(): void {
-    if (matchOnline) return; // online não pausa
-    if (router.current() !== 'match' || match.isPaused() || match.isOver() || overTimer >= 0) return;
-    match.pause();
-    pause.show();
+    if (router.current() !== 'match' || pauseOpen || match.isOver() || overTimer >= 0) return;
+    if (!matchOnline) match.pause();
+    pauseOpen = true;
+    pause.show({ online: matchOnline });
   }
   function resumeMatch(): void {
-    if (!match.isPaused()) return;
+    if (!pauseOpen) return;
+    pauseOpen = false;
     pause.hide();
-    match.resume();
+    if (match.isPaused()) match.resume();
     keyboard.reset(); // teclas soltas durante a pausa não podem ficar "presas"
     gamepad.reset();
+  }
+  /** Perder o foco ou esconder a aba pausa o offline; o online não pausa. */
+  function autoPause(): void {
+    if (!matchOnline) pauseMatch();
   }
 
   router.onChange((s, p, from) => {
@@ -201,45 +229,53 @@ async function runGame(): Promise<void> {
       match.start(source, input);
       nav.setActive(null);
     } else if (from === 'match') {
+      resumeMatch(); // o overlay online pode estar aberto quando a partida acaba
       match.stop();
     }
     if (s !== 'match' && s !== 'results') matchOnline = false;
+    if (s === 'menu') online.leave(); // o menu é sempre offline: fecha a sala ou sai dela
     screens[s].show(p);
   });
 
   // --- clique/Enter em qualquer botão da interface soa como "confirmar" ------
   ui.addEventListener('click', (e) => { if ((e.target as Element).closest('button')) emitUi('confirmar'); });
 
+  /** Sai da press-start para o menu, ou para a tela Online quando o jogo abriu com `?sala=`. */
+  function leavePressStart(): void {
+    emitUi('confirmar');
+    if (pendingRoom === null) { router.go('menu'); return; }
+    const code = normalizeRoomCode(pendingRoom) ?? '';
+    pendingRoom = null;
+    router.go('online', { code });
+  }
+
   // --- teclado ---------------------------------------------------------------
   window.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const s = router.current();
+    const typing = e.target instanceof HTMLInputElement && e.target.type === 'text'; // campo do código da sala
     if (e.code === 'F1') { e.preventDefault(); const on = !fpsEl.classList.contains('is-on'); fpsEl.classList.toggle('is-on', on); match.setDebug(on); return; }
-    if (e.code === 'KeyM') { if (!e.repeat) { applyAudioSettings({ ...audioSettings, muted: !audioSettings.muted }); options.sync(); } return; }
+    if (e.code === 'KeyM' && !typing) { if (!e.repeat) { applyAudioSettings({ ...audioSettings, muted: !audioSettings.muted }); options.sync(); } return; }
     if (e.code === 'KeyN' && fpsEl.classList.contains('is-on') && s === 'match') { match.skipPhase(); return; }
     if (errorScreen.el.hidden === false) { if (nav.key(e.code)) e.preventDefault(); return; }
 
-    // atalho do host online: Espaço/Enter começa a partida (enquanto não há tela de lobby)
-    if (online?.kind === 'host' && (s === 'press-start' || s === 'menu') && (e.code === 'Space' || e.code === 'Enter')) {
-      e.preventDefault();
-      if (!e.repeat) hostStart();
-      return;
-    }
     if (s === 'press-start') {
       if (e.repeat || MODIFIER_CODES.has(e.code) || e.code === 'Tab' || /^F\d+$/.test(e.code)) return;
       e.preventDefault();
-      emitUi('confirmar');
-      router.go('menu');
+      leavePressStart();
       return;
     }
-    if (s === 'match' && !match.isPaused()) {
+    if (s === 'match' && !pauseOpen) {
       if (e.code === 'Escape') { e.preventDefault(); pauseMatch(); return; }
       if (keyboard.keyDown(e.code)) e.preventDefault();
       return;
     }
+    if (typing && s === 'online') { if (onlineScreen.key(e.code)) e.preventDefault(); return; } // letras repetidas também
     const isDir = e.code.startsWith('Arrow') || e.code === 'KeyW' || e.code === 'KeyA' || e.code === 'KeyS' || e.code === 'KeyD';
     if (e.repeat && !(isDir && s !== 'join')) { if (e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape') e.preventDefault(); return; }
     if (s === 'join') { if (join.key(e.code)) e.preventDefault(); return; }
+    if (s === 'lobby') { if (lobby.key(e.code)) e.preventDefault(); return; }
+    if (s === 'online') { if (onlineScreen.key(e.code)) e.preventDefault(); return; }
     if (nav.key(e.code)) e.preventDefault();
   });
   window.addEventListener('keyup', (e) => {
@@ -247,8 +283,8 @@ async function runGame(): Promise<void> {
     // o clique nativo do Espaço sai no keyup: a navegação já tratou no keydown
     if (router.current() !== 'match' && (e.code === 'Space' || e.code === 'Enter')) e.preventDefault();
   });
-  window.addEventListener('blur', () => { keyboard.reset(); pauseMatch(); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) pauseMatch(); });
+  window.addEventListener('blur', () => { keyboard.reset(); autoPause(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause(); });
 
   // --- escala da interface (desenhada em 1280x720) -------------------------
   const onResize = (): void => {
@@ -269,13 +305,14 @@ async function runGame(): Promise<void> {
 
     if (errorScreen.el.hidden === false) { for (const e of events) nav.pad(e.kind); return; }
     if (s === 'press-start') {
-      if (poll.joined.length > 0 || events.length > 0) { wakeAudio(); emitUi('confirmar'); router.go('menu'); }
+      if (poll.joined.length > 0 || events.length > 0) { wakeAudio(); leavePressStart(); }
       return;
     }
     if (s === 'join') { join.pads(poll.joined, events); return; }
+    if (s === 'lobby') { lobby.pads(events); return; }
     if (s === 'match') {
       for (const e of events) {
-        if (match.isPaused()) { if (!nav.pad(e.kind) && e.kind === 'start') resumeMatch(); }
+        if (pauseOpen) { if (!nav.pad(e.kind) && e.kind === 'start') resumeMatch(); }
         else if (e.kind === 'start') { pauseMatch(); break; }
       }
       return;
@@ -314,7 +351,12 @@ async function runGame(): Promise<void> {
       else if (overTimer >= 0) {
         overTimer -= Math.min(real, 0.1);
         const res = match.result();
-        if (overTimer <= 0 && res) { overTimer = -1; router.go('results', res); }
+        if (overTimer <= 0 && res) {
+          overTimer = -1;
+          const role = matchOnline ? online.role() : null;
+          const resultsParams: ResultsParams = role ? { ...res, online: role } : res;
+          router.go('results', resultsParams);
+        }
       }
     }
     if (fpsEl.classList.contains('is-on')) fpsEl.textContent = fpsText(frames.length);
@@ -323,89 +365,15 @@ async function runGame(): Promise<void> {
 
   /** FPS e, no cliente online, ida e volta do ping e idade do último snapshot. */
   function fpsText(fps: number): string {
-    if (online?.kind !== 'client') return `${fps} FPS`;
-    const ms = (v: number) => (Number.isFinite(v) ? `${Math.round(v)} ms` : '—');
-    return `${fps} FPS · RTT ${ms(online.session.rtt())} · snap ${ms(online.session.snapshotAge() * 1000)}`;
+    const extra = online.debugText();
+    return extra ? `${fps} FPS · ${extra}` : `${fps} FPS`;
   }
 
-  // --- online (por enquanto só pelos atalhos de desenvolvimento) --------------
-  /** Host: começa a partida com quem está no lobby (precisa de 2 ou mais). */
-  function hostStart(): void {
-    if (online?.kind !== 'host') return;
-    const { session } = online;
-    const config = session.start(Date.now());
-    if (!config) { console.info('[online] precisa de 2 jogadores ou mais para começar'); return; }
-    router.go('match', { source: createLocalSource(config, bank, session.hooks()), input: anyDeviceInput('P1', keyboard, gamepad, session), online: true });
-  }
-
-  function netErrorText(err: unknown): string {
-    if (!(err instanceof NetError)) return 'Não foi possível conectar.';
-    switch (err.kind) {
-      case 'not-found': return 'Sala não encontrada.';
-      case 'full': return 'A sala está cheia.';
-      case 'started': return 'Partida já começou.';
-      case 'version': return 'Sua versão do jogo é diferente da do host.';
-      default: return 'Não foi possível conectar.';
-    }
-  }
-
-  /** Erro do online: sai da sessão, volta ao menu e mostra a tela de erro (o "Tentar de novo" recarrega sem o atalho). */
-  function onlineFailed(text: string): void {
-    leaveOnline();
-    const url = new URL(location.href);
-    url.searchParams.delete('online');
-    url.searchParams.delete('sala');
-    history.replaceState(null, '', url);
-    router.go('menu');
-    document.body.dataset.screen = 'error';
-    errorScreen.show(text);
-  }
-
-  /** O atalho só assume a sessão se a pessoa ainda estiver esperando (press-start ou menu). */
-  const stillWaiting = (): boolean => router.current() === 'press-start' || router.current() === 'menu';
-
-  async function startOnlineDev(kind: string | null): Promise<void> {
-    try {
-      if (kind === 'host') {
-        const room = await hostRoom();
-        let session: HostSession;
-        try {
-          session = createHostSession(room, bank);
-        } catch (err) {
-          room.close();
-          throw err;
-        }
-        if (!stillWaiting()) { session.close(); return; } // foi jogar offline enquanto a sala abria
-        online = { kind: 'host', session };
-        console.info('[online] sala', room.code);
-        const show = () => {
-          const n = session.lobby().players.length;
-          devEl.textContent = `Sala ${room.code} · ${n} ${n === 1 ? 'jogador' : 'jogadores'} · Espaço começa (2+)`;
-        };
-        session.onLobby(show);
-        show();
-      } else if (kind === 'join') {
-        const code = normalizeRoomCode(params.get('sala') ?? '');
-        if (!code) throw new NetError('not-found');
-        const session = await joinSession(await joinRoom(code), bank);
-        if (!stillWaiting()) { session.close(); return; }
-        online = { kind: 'client', session };
-        devEl.textContent = `Sala ${code} · você é ${session.you} · esperando o host`;
-        session.onStart(() => {
-          if (online?.session !== session) return; // sessão já fechada: não sequestra a tela
-          router.go('match', { source: session.source(), input: anyDeviceInput(session.you, keyboard, gamepad, session), online: true });
-        });
-        session.onClosed(() => { if (online?.session === session) onlineFailed('A conexão com o host caiu.'); });
-      }
-    } catch (err) {
-      console.warn('[online]', err);
-      if (stillWaiting()) onlineFailed(netErrorText(err));
-    }
-  }
   // avisa os outros na hora em vez de esperar o timeout da conexão
-  window.addEventListener('pagehide', () => { online?.session.close(); });
+  window.addEventListener('pagehide', () => { online.leave(); });
 
   // --- partida rápida para testes (só em desenvolvimento) ---------------------
+  const devOnline = import.meta.env.DEV ? params.get('online') : null;
   if (error) {
     document.body.dataset.screen = 'error';
     errorScreen.show(error);
@@ -421,10 +389,14 @@ async function runGame(): Promise<void> {
       ? { mode: 'points', rounds: rounds === 12 || rounds === 16 ? rounds : 8, players, seed }
       : { mode: 'survival', players, seed };
     router.go('match', matchParams(config, devices));
-  } else if (import.meta.env.DEV && params.has('online')) {
-    document.body.dataset.screen = 'press-start';
-    pressStart.show();
-    void startOnlineDev(params.get('online'));
+  } else if (devOnline === 'host' || devOnline === 'join') {
+    // atalhos de desenvolvimento: pulam press-start e menu e conectam pelo mesmo fluxo da tela Online
+    pendingRoom = null;
+    const code = normalizeRoomCode(params.get('sala') ?? '');
+    const joining = devOnline === 'join' && code !== null;
+    router.go('online', { code: code ?? '', connecting: devOnline === 'host' || joining });
+    if (devOnline === 'host') void online.host();
+    else if (code) void online.join(code);
   } else {
     document.body.dataset.screen = 'press-start';
     pressStart.show();

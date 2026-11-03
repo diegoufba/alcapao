@@ -1,5 +1,6 @@
 import { button, h, portrait, stage, type ScreenCtl } from './dom';
-import { emitUi, KEY_DIRS, type Dir, type PadEvent } from './nav';
+import { emitUi, KEY_DIRS, type PadEvent } from './nav';
+import { createModePicker } from './mode-picker';
 import { DeviceSlots } from '../input/devices';
 import { applyPadChanges, pruneDisconnected } from '../input/connection';
 import { padLeaveAction } from './join-logic';
@@ -8,15 +9,7 @@ import type { GameConfig } from '../core/game';
 import type { PlayerId } from '../core/types';
 import { PLAYER_COLORS } from '../render/scene';
 
-type Mode = 'survival' | 'points';
-type Rounds = 8 | 12 | 16;
-const ROUNDS: Rounds[] = [8, 12, 16];
-const MODES: { id: Mode; label: string }[] = [{ id: 'survival', label: 'Sobrevivência' }, { id: 'points', label: 'Pontos' }];
 const SLOTS: PlayerId[] = ['P1', 'P2', 'P3', 'P4'];
-const HINTS: Record<Mode, string> = {
-  points: 'Ninguém é eliminado. Acertos valem 100 / 200 / 300 conforme a dificuldade.',
-  survival: 'Errou, caiu fora. Vence o último de pé.',
-};
 
 function deviceInfo(d: DeviceId): { dev: string; keys: string } {
   switch (d) {
@@ -48,33 +41,16 @@ interface JoinDeps {
 /** `show({ keep: true })` mantém jogadores (jogar de novo); sem isso, começa vazio. Modo e rodadas persistem. */
 export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDeps): JoinScreen {
   let devices = new DeviceSlots();
-  let mode: Mode = 'survival';
-  let rounds: Rounds = 12;
-  let row: 'mode' | 'rounds' = 'mode';
 
   const cards = h('div', 'slots');
-  const modeChips = MODES.map((m) => {
-    const b = button('chip', m.label, () => { mode = m.id; row = 'mode'; emitUi('navegar'); render(); });
-    return { id: m.id, b };
-  });
-  const roundChips = ROUNDS.map((r) => {
-    const b = button('chip chip-num', String(r), () => { rounds = r; row = 'rounds'; emitUi('navegar'); render(); });
-    return { r, b };
-  });
-  const modeGroup = h('div', 'opt-group', '', h('span', 'opt-label', 'Modo'), ...modeChips.map((c) => c.b));
-  modeGroup.setAttribute('role', 'group');
-  modeGroup.setAttribute('aria-label', 'Modo de jogo');
-  const roundsGroup = h('div', 'opt-group', '', h('span', 'opt-label', 'Rodadas'), ...roundChips.map((c) => c.b));
-  roundsGroup.setAttribute('role', 'group');
-  roundsGroup.setAttribute('aria-label', 'Número de rodadas');
-  const hint = h('span', 'mode-hint');
+  const picker = createModePicker(() => {});
   const start = button('btn btn-accent', 'COMEÇAR', () => tryStart());
 
   const { el } = stage('join',
     h('div', 'join-head', '', h('h1', 'title', 'QUEM VAI JOGAR?'),
       h('p', 'lead', 'Aperte qualquer tecla do seu grupo ou um botão do controle para entrar')),
     cards,
-    h('div', 'opts', '', modeGroup, roundsGroup, hint),
+    picker.el,
     h('div', 'join-foot', '', start, h('span', 'hint', 'P1 aperta Espaço ou Start · Esc / B volta ao menu')));
 
   function render(): void {
@@ -91,15 +67,7 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
       }
       return c;
     }));
-    const points = mode === 'points';
-    if (!points) row = 'mode';
-    for (const c of modeChips) { c.b.classList.toggle('is-on', c.id === mode); c.b.setAttribute('aria-pressed', String(c.id === mode)); }
-    for (const c of roundChips) { c.b.classList.toggle('is-on', c.r === rounds); c.b.setAttribute('aria-pressed', String(c.r === rounds)); }
-    roundsGroup.hidden = !points;
-    const hasP1 = devices.deviceOf('P1') !== null; // o anel mostra a linha que o dispositivo de P1 controla
-    modeGroup.classList.toggle('is-row', hasP1 && row === 'mode');
-    roundsGroup.classList.toggle('is-row', hasP1 && row === 'rounds');
-    hint.textContent = HINTS[mode];
+    picker.showRow(devices.deviceOf('P1') !== null); // o anel mostra a linha que o dispositivo de P1 controla
     start.disabled = devices.players().length === 0;
   }
 
@@ -127,26 +95,9 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
     if (players.length === 0) return;
     emitUi('confirmar');
     const seed = Date.now();
+    const { mode, rounds } = picker.get();
     const config: GameConfig = mode === 'survival' ? { mode, players, seed } : { mode, rounds, players, seed };
     onStart(config, devices);
-  }
-
-  /** O dispositivo de P1 muda modo (linha de cima) e rodadas (linha de baixo). */
-  function p1Dir(dir: Dir): void {
-    if (dir === 'up' || dir === 'down') {
-      if (mode === 'points') { row = dir === 'down' ? 'rounds' : 'mode'; emitUi('navegar'); render(); }
-      return;
-    }
-    const step = dir === 'right' ? 1 : -1;
-    if (row === 'mode') {
-      const i = MODES.findIndex((m) => m.id === mode);
-      mode = MODES[Math.min(Math.max(i + step, 0), MODES.length - 1)].id;
-    } else {
-      const i = ROUNDS.indexOf(rounds);
-      rounds = ROUNDS[Math.min(Math.max(i + step, 0), ROUNDS.length - 1)];
-    }
-    emitUi('navegar');
-    render();
   }
 
   return {
@@ -154,7 +105,8 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
     show(params) {
       const keep = typeof params === 'object' && params !== null && (params as { keep?: boolean }).keep === true;
       if (!keep) devices = new DeviceSlots();
-      row = 'mode';
+      const { mode, rounds } = picker.get();
+      picker.set(mode, rounds); // anel de volta na linha do modo; modo e rodadas persistem
       if (keep) for (const e of pruneDisconnected(devices, isPadConnected)) emitUi(e);
       el.hidden = false;
       render();
@@ -172,7 +124,7 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
         const g = KEY_GROUPS.find((k) => k.id === d);
         const dir = KEY_DIRS[code];
         // só as quatro teclas de direção do próprio grupo de P1 contam (não o empurrar)
-        if (g && dir && [g.up, g.down, g.left, g.right].includes(code)) p1Dir(dir);
+        if (g && dir && [g.up, g.down, g.left, g.right].includes(code)) picker.dir(dir);
       }
       return true;
     },
@@ -188,7 +140,7 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
           if (a.type === 'menu') { emitUi('voltar'); onBack(); return; }
           if (a.type === 'leave') removePlayer(a.player);
         } else if (d === p1 && e.kind === 'start') { tryStart(); return; }
-        else if (d === p1 && (e.kind === 'up' || e.kind === 'down' || e.kind === 'left' || e.kind === 'right')) p1Dir(e.kind);
+        else if (d === p1 && (e.kind === 'up' || e.kind === 'down' || e.kind === 'left' || e.kind === 'right')) picker.dir(e.kind);
       }
     },
     padDisconnected(d) {
