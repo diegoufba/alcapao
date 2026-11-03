@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'vitest';
-import { padLeaveAction } from '../../src/ui/join-logic';
+import { canJoin, padLeaveAction } from '../../src/ui/join-logic';
 import { DeviceSlots } from '../../src/input/devices';
 
 function slots(): DeviceSlots {
@@ -25,5 +25,24 @@ describe('padLeaveAction', () => {
     expect(padLeaveAction(s, 'gp-1', 'select')).toEqual({ type: 'leave', player: 'P2' });
     expect(padLeaveAction(s, 'gp-0', 'select')).toEqual({ type: 'none' });
     expect(padLeaveAction(s, 'gp-3', 'select')).toEqual({ type: 'none' });
+  });
+});
+
+describe('canJoin', () => {
+  test('toque ligado recusa teclado', () => {
+    expect(canJoin(1, 'kb-wasd', true)).toBe(false);
+  });
+  test('toque ligado recusa gamepad', () => {
+    expect(canJoin(1, 'gp-0', true)).toBe(false);
+  });
+  test('toque entra sozinho', () => {
+    expect(canJoin(0, 'touch', true)).toBe(true);
+  });
+  test('toque ligado recusa um segundo jogador de toque', () => {
+    expect(canJoin(1, 'touch', true)).toBe(false);
+  });
+  test('toque desligado segue como hoje', () => {
+    expect(canJoin(1, 'kb-wasd', false)).toBe(true);
+    expect(canJoin(4, 'gp-0', false)).toBe(false);
   });
 });

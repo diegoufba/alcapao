@@ -3,10 +3,11 @@ import { emitUi, KEY_DIRS, type Dir, type PadEvent } from './nav';
 import { createModePicker } from './mode-picker';
 import { DeviceSlots } from '../input/devices';
 import { applyPadChanges, pruneDisconnected } from '../input/connection';
-import { padLeaveAction } from './join-logic';
+import { canJoin, padLeaveAction } from './join-logic';
 import { KEY_GROUPS, type DeviceId, type KeyboardInput } from '../input/keyboard';
 import type { GameConfig } from '../core/game';
 import type { PlayerId } from '../core/types';
+import type { TouchMode } from '../input/touch-mode';
 import { PLAYER_COLORS } from '../render/scene';
 
 const SLOTS: PlayerId[] = ['P1', 'P2', 'P3', 'P4'];
@@ -33,6 +34,7 @@ export interface JoinScreen extends ScreenCtl {
 
 interface JoinDeps {
   keyboard: KeyboardInput;
+  touchMode: TouchMode;
   /** Gamepad está conectado agora? Usado para podar pads mantidos ao reentrar com `keep`. */
   isPadConnected(d: DeviceId): boolean;
   onStart(config: GameConfig, devices: DeviceSlots): void;
@@ -40,21 +42,24 @@ interface JoinDeps {
 }
 
 /** `show({ keep: true })` mantém jogadores (jogar de novo); sem isso, começa vazio. Modo e rodadas persistem. */
-export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDeps): JoinScreen {
+export function createJoin({ keyboard, touchMode, isPadConnected, onStart, onBack }: JoinDeps): JoinScreen {
   let devices = new DeviceSlots();
 
   const cards = h('div', 'slots');
   const picker = createModePicker(() => {});
   const start = button('btn btn-accent', 'COMEÇAR', () => tryStart());
 
+  const hint = h('span', 'hint', '');
   const { el } = stage('join',
     h('div', 'join-head', '', h('h1', 'title', 'QUEM VAI JOGAR?'),
       h('p', 'lead', 'Aperte qualquer tecla do seu grupo ou um botão do controle para entrar')),
     cards,
     picker.el,
-    h('div', 'join-foot', '', start, h('span', 'hint', 'P1 aperta Espaço ou Start · Esc / B volta ao menu')));
+    h('div', 'join-foot', '', start, hint));
 
   function render(): void {
+    const touchOn = touchMode.isOn();
+    hint.textContent = touchOn ? 'Toque em COMEÇAR' : 'P1 aperta Espaço ou Start · Esc / B volta ao menu';
     cards.replaceChildren(...SLOTS.map((id) => {
       const d = devices.deviceOf(id);
       const c = h('div', d ? 'slot is-joined' : 'slot');
@@ -64,7 +69,8 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
         const info = deviceInfo(d);
         c.append(img, h('span', 'slot-title', `${id} · ${info.dev}`), h('span', 'slot-detail', info.keys), h('span', 'badge', 'PRONTO'));
       } else {
-        c.append(img, h('span', 'slot-title is-free', 'Vaga livre'), h('span', 'slot-detail', 'WASD · Setas · IJKL\nou qualquer controle'));
+        c.append(img, h('span', 'slot-title is-free', 'Vaga livre'), 
+          h('span', 'slot-detail', touchOn ? 'Só 1 jogador no celular' : 'WASD · Setas · IJKL\nou qualquer controle'));
       }
       return c;
     }));
@@ -74,10 +80,16 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
 
   function tryJoin(d: DeviceId): boolean {
     if (devices.slotOf(d)) return false;
+    if (!canJoin(devices.players().length, d, touchMode.isOn())) return false;
     if (!devices.join(d)) return false;
     emitUi('entrou');
     render();
     return true;
+  }
+
+  /** No modo toque, a sala vazia ganha o P1 de toque. Com teclado ou gamepad já dentro, não mexe. */
+  function joinTouchIfEmpty(): void {
+    if (touchMode.isOn() && devices.players().length === 0) tryJoin('touch');
   }
 
   function removePlayer(p: PlayerId): void {
@@ -106,6 +118,13 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
     onStart(config, devices);
   }
 
+  // Modo toque ligado ou desligado com a tela aberta: refaz as vagas. Desligar não tira o P1.
+  touchMode.onChange(() => {
+    if (el.hidden) return;
+    joinTouchIfEmpty();
+    render();
+  });
+
   return {
     el,
     show(params) {
@@ -115,6 +134,7 @@ export function createJoin({ keyboard, isPadConnected, onStart, onBack }: JoinDe
       picker.set(mode, rounds); // anel de volta na linha do modo; modo e rodadas persistem
       if (keep) for (const e of pruneDisconnected(devices, isPadConnected)) emitUi(e);
       el.hidden = false;
+      joinTouchIfEmpty();
       render();
     },
     hide() { el.hidden = true; },

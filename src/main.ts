@@ -179,6 +179,7 @@ async function runGame(): Promise<void> {
   });
   const join = createJoin({
     keyboard,
+    touchMode,
     isPadConnected: (d) => gamepad.isConnected(d),
     onStart: (config, devices) => { router.go('match', matchParams(config, devices)); },
     onBack: () => router.go('menu'),

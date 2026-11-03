@@ -20,3 +20,9 @@ export function padLeaveAction(slots: Slots, device: DeviceId, kind: 'back' | 's
   if (player !== null && !isP1) return { type: 'leave', player };
   return kind === 'back' ? { type: 'menu' } : { type: 'none' };
 }
+
+/** Pode este dispositivo entrar? No modo toque só o 'touch' entra, e só uma vez. */
+export function canJoin(players: number, device: DeviceId, touchOn: boolean): boolean {
+  if (touchOn) return device === 'touch' && players === 0;
+  return players < 4;
+}
