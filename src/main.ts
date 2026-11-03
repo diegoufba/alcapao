@@ -76,7 +76,7 @@ async function runGame(): Promise<void> {
   app.replaceChildren(canvas, hudRoot, fpsEl, waitEl, ui);
 
   await Promise.all([document.fonts.load('40px "Titan One"'), document.fonts.load('700 40px Nunito'), document.fonts.load('800 40px Nunito')]);
-  const { renderer, scene, camera, resize, update: updateScene } = createScene(canvas);
+  const { renderer, scene, camera, resize, update: updateScene, setMaxPixelRatio } = createScene(canvas);
   const { bank, error } = await loadBank();
 
   const storage = safeStorage(); // uma única instância, repassada às telas
@@ -238,13 +238,21 @@ async function runGame(): Promise<void> {
     },
   });
   app.insertBefore(touchControls.el, ui); // abaixo das telas: o overlay de pausa cobre os controles
-  // modo toque desligado (teclado/gamepad) no meio da partida: nenhum dedo fica preso
-  touchMode.onChange((on) => { if (!on) touchControls.reset(); });
+  // modo toque desligado (teclado/gamepad) no meio da partida: nenhum dedo fica preso.
+  // No celular, menos pixels por quadro: o pixel ratio fica em 1,5 (2 fora do toque).
+  touchMode.onChange((on) => {
+    if (!on) touchControls.reset();
+    setMaxPixelRatio(on ? 1.5 : 2);
+  });
 
   /** Perder o foco ou esconder a aba pausa o offline; o online não pausa. */
   function autoPause(): void {
     if (!matchOnline) pauseMatch();
   }
+  // girar o celular para retrato cobre a tela com o aviso: o offline pausa (o online segue)
+  matchMedia('(orientation: portrait)').addEventListener('change', (e) => {
+    if (e.matches && touchMode.isOn() && router.current() === 'match') autoPause();
+  });
 
   router.onChange((s, p, from) => {
     screens[from].hide();
@@ -283,6 +291,29 @@ async function runGame(): Promise<void> {
     history.replaceState(null, '', url);
     router.go('online', { code });
   }
+
+  /** Tela cheia e paisagem no celular. Cada passo pode faltar (iOS) ou ser recusado: falha em silêncio. */
+  async function goLandscape(): Promise<void> {
+    try { await document.documentElement.requestFullscreen?.(); } catch { /* recusado */ }
+    try {
+      const orientation = screen.orientation as (ScreenOrientation & { lock?: (o: string) => Promise<void> }) | undefined;
+      await orientation?.lock?.('landscape');
+    } catch { /* sem tela cheia ou sem suporte */ }
+  }
+  // Toque ou clique também saem da press-start. No toque, o mesmo gesto pede tela cheia e trava em paisagem
+  // (sem erro visível se o navegador recusar). O `click` que o toque sintetiza logo depois é engolido, para não
+  // acionar o botão do menu que aparece embaixo do dedo. Vale só até o próximo `pointerdown` ou tecla (toque longo não gera `click`).
+  let swallowClick = false;
+  for (const type of ['pointerdown', 'keydown'] as const) window.addEventListener(type, () => { swallowClick = false; }, { capture: true });
+  window.addEventListener('pointerdown', (e) => {
+    if (router.current() !== 'press-start' || errorScreen.el.hidden === false || !e.isPrimary) return;
+    if (e.pointerType === 'touch') void goLandscape();
+    swallowClick = true;
+    leavePressStart(); // wakeAudio já roda no pointerdown em captura; o emitUi('confirmar') está aqui dentro
+  });
+  window.addEventListener('click', (e) => {
+    if (swallowClick) { swallowClick = false; e.preventDefault(); e.stopPropagation(); }
+  }, { capture: true });
 
   /** Online em produção não revela a resposta nem pula fase: o F1 só mostra FPS/RTT. */
   function debugAllowed(): boolean { return !matchOnline || import.meta.env.DEV; }

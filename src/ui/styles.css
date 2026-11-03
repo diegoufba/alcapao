@@ -14,6 +14,7 @@
 }
 
 html, body { margin: 0; height: 100%; background: var(--sky); color: var(--text); font-family: var(--body); font-weight: 700; overflow: hidden; }
+body { touch-action: manipulation; } /* sem duplo toque para zoom */
 #app { position: fixed; inset: 0; }
 #app canvas { display: block; width: 100%; height: 100%; }
 
@@ -321,9 +322,28 @@ body.is-touch .hud-card:nth-child(even) { grid-column: 3; }
 body.is-touch .hud-card { gap: 3px; padding: 4px 8px; border-width: 3px; border-radius: 10px; box-shadow: 3px 3px 0 var(--ink); }
 body.is-touch .hud-dot { width: 12px; height: 12px; border-width: 2px; }
 body.is-touch .hud-id { font-size: 14px; }
-body.is-touch .hud-device, body.is-touch .hud-cool { font-size: 10px; }
+body.is-touch .hud-device { display: none; } /* "Toque" não cabe no card de 140 px */
+body.is-touch .hud-cool { font-size: 10px; }
 body.is-touch .hud-status { font-size: 11px; }
 body.is-touch .hud-pushlabel { display: none; } /* card estreito: a barra ocupa o lugar do rótulo */
 body.is-touch .hud-cool { width: 38px; }
 body.is-touch .hud-track { height: 6px; }
 body.is-touch .hud-fill { height: 6px; }
+
+/* ---------- aviso "Gire o celular": celular em retrato. Cobre tudo; o jogo segue rodando por trás ---------- */
+.rotate-hint { display: none; }
+@media (orientation: portrait) and (pointer: coarse) {
+  .rotate-hint {
+    position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; padding: 24px; box-sizing: border-box; background: var(--sky); text-align: center; touch-action: none;
+  }
+}
+.rotate-icon { animation: rotate-hint 2.4s ease-in-out infinite; margin-bottom: 12px; }
+.rotate-title { margin: 0; font-family: var(--title); font-size: 34px; color: var(--accent); -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; }
+.rotate-text { margin: 0; font-size: 18px; font-weight: 800; color: var(--ink); }
+@keyframes rotate-hint {
+  0%, 20% { transform: rotate(0deg); }
+  50%, 80% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) { .rotate-icon { animation: none; transform: rotate(-90deg); } }
