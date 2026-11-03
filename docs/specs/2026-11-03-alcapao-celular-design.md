@@ -1,6 +1,6 @@
 # Alçapão: especificação do jogo no celular
 
-**Data:** 03/11/2026 · **Status:** em revisão · **Base:** [MVP](2026-11-02-alcapao-design.md) e [modo online](2026-11-03-alcapao-online-design.md)
+**Data:** 03/11/2026 · **Status:** implementado · **Base:** [MVP](2026-11-02-alcapao-design.md) e [modo online](2026-11-03-alcapao-online-design.md)
 
 ---
 
@@ -145,3 +145,18 @@ Mudanças em arquivos existentes:
 - Vibração.
 - Personalizar a posição dos controles.
 - Instalar o jogo na tela inicial (PWA).
+
+---
+
+## 10. Notas da implementação
+
+Desvios em relação ao que está escrito acima:
+
+- **HUD no toque (§4):** os cards ficaram nos cantos do topo, com 140 px (P1 e P3 à esquerda, P2 e P4 à direita), para não cobrir o telão. O rótulo do dispositivo fica escondido nesse modo.
+- **Tela inicial:** passou a sair também por toque e por clique (botão principal do mouse). Antes saía só por tecla ou gamepad, e no celular a pessoa ficava presa.
+- **Tela cheia (§5):** `requestFullscreen()` e `orientation.lock` são pedidos no `pointerup` do toque, não no primeiro toque, porque o `pointerdown` não dá ativação de usuário no toque.
+- **Clique fantasma:** o clique que o toque gera depois de sair da tela inicial é descartado se chegar em até 400 ms (`SWALLOW_CLICK_MS`), para não acionar o botão do menu que fica embaixo do dedo.
+- **Teclado virtual:** teclas digitadas num campo de texto não desligam o modo toque (§2).
+- **Textos da entrada (§4):** o topo da tela de entrada no toque diz "Você joga sozinho no celular". O rodapé é "Toque em COMEÇAR".
+- **Tablet híbrido:** quando o toque liga, jogadores de teclado ou gamepad que já estavam na entrada não são removidos. O P1 de toque só entra com a sala vazia.
+- **Atalho de DEV:** `?quick=...&touch` (ou `pointer: coarse`) faz o P1 usar o dispositivo de toque.
