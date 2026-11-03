@@ -2,6 +2,8 @@
 
 Jogo de perguntas e respostas para até 4 pessoas na mesma tela, no navegador. A cada rodada o telão faz uma pergunta com quatro alternativas, uma por plataforma: corra para a certa, empurre os rivais, e quem estiver na errada cai pelo alçapão.
 
+Jogue em <https://diegoufba.github.io/alcapao/>.
+
 ## Requisitos
 
 Node 22.12 ou mais novo e um navegador moderno.

@@ -14,6 +14,7 @@ npx vitest run -t "nome do teste"             # um teste pelo nome
 npx tsc --noEmit                              # checagem de tipos (o build roda `tsc && vite build`)
 npm run lint
 npm run build
+npm run build:pages                           # build com base /alcapao/ (GitHub Pages)
 ```
 
 Neste computador (Windows) o Node vem do `fnm` e não está no PATH padrão do shell do agente. No PowerShell, antes do `npm`/`npx`:
@@ -52,3 +53,7 @@ O fluxo de um quadro, em `src/main.ts` (`renderer.setAnimationLoop`): entradas �
 ## Documentação
 
 Spec em `docs/specs/2026-11-02-alcapao-design.md`, plano em `docs/plans/2026-11-02-alcapao-mvp.md` e checklist em `docs/checklist-mvp.md`. Ao mudar números de jogo (velocidade, tempos, pontos), atualize a spec e o plano junto.
+
+## Deploy
+
+Cada push na `main` dispara `.github/workflows/pages.yml`: lint, testes, `npm run build:pages` e publicação em <https://diegoufba.github.io/alcapao/>. Caminhos de arquivos em `public/` precisam passar por `import.meta.env.BASE_URL`, senão quebram fora da raiz.
