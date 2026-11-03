@@ -5,13 +5,15 @@ import '@fontsource/nunito/900.css';
 import './ui/styles.css';
 import { createScene } from './render/scene';
 import { validateBank } from './core/questions';
-import type { Question } from './core/types';
+import type { PlayerId, Question } from './core/types';
+import { PUSH_COOLDOWN } from './core/physics';
 import type { GameConfig } from './core/game';
 import { KeyboardInput, type DeviceId } from './input/keyboard';
 import { GamepadInput, type PadLike } from './input/gamepad';
 import { DeviceSlots } from './input/devices';
 import { applyPadChanges } from './input/connection';
 import { createTouchMode } from './input/touch-mode';
+import { TouchInput } from './input/touch';
 import { safeStorage } from './storage';
 import { createMatchController } from './match';
 import { createLocalSource } from './sim/local';
@@ -30,6 +32,7 @@ import { createOnline } from './ui/online';
 import { createLobby } from './ui/lobby';
 import { createPause } from './ui/pause';
 import { createError } from './ui/error';
+import { createTouchControls } from './ui/touch-controls';
 import type { ScreenCtl } from './ui/dom';
 import { AudioDirector, type UiEvent } from './audio/director';
 import { loadAudioSettings, saveAudioSettings, type AudioSettings } from './audio/settings';
@@ -124,10 +127,11 @@ async function runGame(): Promise<void> {
   for (const type of ['keydown', 'pointerdown'] as const) window.addEventListener(type, wakeAudio, { capture: true });
   syncAudioHint();
   const touchMode = createTouchMode(window, document.body);
+  const touch = new TouchInput(); // uma instância só: offline (dispositivo `touch`) e online (jogador local)
 
   /** Parâmetros da rota `match` para uma partida offline: fonte local + dispositivos. */
   function matchParams(config: GameConfig, devices: DeviceSlots): { source: SimSource; input: MatchInput; devices: DeviceSlots } {
-    return { source: createLocalSource(config, bank), input: deviceInput(devices, keyboard, gamepad), devices };
+    return { source: createLocalSource(config, bank), input: deviceInput(devices, keyboard, gamepad, touch), devices };
   }
 
   let overTimer = -1; // contagem até a tela de resultados (<0 = inativa)
@@ -145,6 +149,7 @@ async function runGame(): Promise<void> {
     bank,
     keyboard,
     gamepad,
+    touch,
     router,
     inputBlocked: () => pauseOpen,
     lobbyChanged: (l) => lobby.update(l),
@@ -215,7 +220,26 @@ async function runGame(): Promise<void> {
     if (match.isPaused()) match.resume();
     keyboard.reset(); // teclas soltas durante a pausa não podem ficar "presas"
     gamepad.reset();
+    touchControls.reset();
   }
+  /** O jogador deste aparelho: P1 no offline, o `you` da sessão no online; null fora da partida. */
+  function localPlayer(): PlayerId | null {
+    if (router.current() !== 'match') return null;
+    return matchOnline ? online.you() : 'P1';
+  }
+  const touchControls = createTouchControls({
+    touch,
+    onPause: pauseMatch, // o mesmo caminho do Esc: pausa o offline, abre o overlay no online
+    cooldown() {
+      const id = localPlayer();
+      const p = id ? match.state()?.players.find((q) => q.id === id) : undefined;
+      return p ? p.pushCooldown / PUSH_COOLDOWN : null;
+    },
+  });
+  app.insertBefore(touchControls.el, ui); // abaixo das telas: o overlay de pausa cobre os controles
+  // modo toque desligado (teclado/gamepad) no meio da partida: nenhum dedo fica preso
+  touchMode.onChange((on) => { if (!on) touchControls.reset(); });
+
   /** Perder o foco ou esconder a aba pausa o offline; o online não pausa. */
   function autoPause(): void {
     if (!matchOnline) pauseMatch();
@@ -235,6 +259,7 @@ async function runGame(): Promise<void> {
       applyDebug();
       nav.setActive(null);
     } else if (from === 'match') {
+      touchControls.reset();
       resumeMatch(); // o overlay online pode estar aberto quando a partida acaba
       match.stop();
     }
@@ -297,8 +322,8 @@ async function runGame(): Promise<void> {
     // o clique nativo do Espaço sai no keyup: a navegação já tratou no keydown
     if (router.current() !== 'match' && (e.code === 'Space' || e.code === 'Enter')) e.preventDefault();
   });
-  window.addEventListener('blur', () => { keyboard.reset(); autoPause(); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause(); });
+  window.addEventListener('blur', () => { keyboard.reset(); touchControls.reset(); autoPause(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { touchControls.reset(); autoPause(); } });
 
   // --- escala da interface (desenhada em 1280x720) -------------------------
   const onResize = (): void => {
@@ -374,6 +399,7 @@ async function runGame(): Promise<void> {
         }
       }
     }
+    if (touchMode.isOn() && router.current() === 'match') touchControls.update();
     waitEl.classList.toggle('is-on', router.current() === 'match' && matchOnline && online.hostStalled());
     if (fpsEl.classList.contains('is-on')) fpsEl.textContent = fpsText(frames.length);
     renderer.render(scene, camera);
@@ -397,7 +423,9 @@ async function runGame(): Promise<void> {
     const quick = params.get('quick');
     const n = Math.min(Math.max(Number(params.get('players')) || 2, 1), 4);
     const devices = new DeviceSlots();
-    (['kb-wasd', 'kb-arrows', 'kb-ijkl', 'gp-0'] as DeviceId[]).slice(0, n).forEach((d) => devices.join(d));
+    // tela de toque (celular) ou `&touch`: o P1 joga pelos controles na tela
+    const p1: DeviceId = params.has('touch') || matchMedia('(pointer: coarse)').matches ? 'touch' : 'kb-wasd';
+    ([p1, 'kb-arrows', 'kb-ijkl', 'gp-0'] as DeviceId[]).slice(0, n).forEach((d) => devices.join(d));
     const players = devices.players();
     const seed = Date.now();
     const rounds = Number(params.get('rounds'));
