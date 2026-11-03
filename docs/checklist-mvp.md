@@ -86,6 +86,21 @@ Spec: [2026-11-03-alcapao-online-design.md](specs/2026-11-03-alcapao-online-desi
 | Partida entre dois computadores de verdade, em redes diferentes (latência, fluidez, rede que bloqueia por NAT simétrico/CGNAT) | ⏳ pendente — Diego |
 | Em produção (GitHub Pages): o chunk do PeerJS carrega só ao abrir o online e `?sala=` abre a tela Online | ⏳ pendente — Diego: conferir após o deploy |
 
+## 9. Jogo no celular
+
+Spec: [2026-11-03-alcapao-celular-design.md](specs/2026-11-03-alcapao-celular-design.md). Testes automatizados de `stick`, `touch`, `canJoin` e `joinAction`; o resto depende de conferir no painel (preset mobile, 812×375) e num celular de verdade.
+
+| Item | Resultado |
+|---|---|
+| Analógico (zona morta, limite, eixo) e dois dedos (o segundo não rouba o analógico): `StickTracker` | ✅ verificado automaticamente: `tests/input/stick.test.ts` |
+| `TouchInput` (empurrão único, `reset`) | ✅ verificado automaticamente: `tests/input/touch.test.ts` |
+| Regra de 1 jogador na entrada (`canJoin`) e troca do P1 de toque por teclado/gamepad (`joinAction`) | ✅ verificado automaticamente: `tests/ui/join-logic.test.ts` |
+| Botões VOLTAR (entrada, Online) e FECHAR/SAIR DA SALA (lobby) no toque; WASD com o P1 de toque troca o P1 sem criar P2; no PC os botões não aparecem | ✅ verificado no painel (812×375, toque por `PointerEvent` sintético) |
+| Partida offline inteira só com toque e aviso "Gire o celular" em retrato | ⏳ pendente — Diego: conferir no painel do navegador (preset mobile) |
+| Celular de verdade na rede local (`npm run dev -- --host`): partida offline e online com o PC de host | ⏳ pendente — Diego |
+| Tela cheia, trava em paisagem, áudio e FPS no Android; no iOS vale só o aviso | ⏳ pendente — Diego |
+| No PC, com teclado ou gamepad, nada muda (`?quick=points&players=4` e o fluxo normal) | ⏳ pendente — Diego |
+
 ## Observações
 
 - Nenhum erro ou aviso no console em nenhum dos cenários automatizados.

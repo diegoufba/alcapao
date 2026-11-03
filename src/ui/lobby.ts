@@ -38,7 +38,8 @@ export function createLobby({ onStart, onOptions, onLeave }: LobbyDeps): LobbySc
   const picker = createModePicker((mode, rounds) => { if (p.host) onOptions(mode, rounds); });
   const start = button('btn btn-accent', 'COMEÇAR', () => tryStart());
   const waiting = h('span', 'waiting', 'Aguardando o host…');
-  const hint = h('span', 'hint');
+  const hint = h('span', 'hint no-touch'); // os atalhos de teclado e gamepad somem no toque
+  const exit = button('btn touch-only', '', () => onLeave()); // no toque não há Esc / B
 
   const { el } = stage('lobby',
     h('div', 'lobby-head', '',
@@ -48,7 +49,7 @@ export function createLobby({ onStart, onOptions, onLeave }: LobbyDeps): LobbySc
     linkLine,
     cards,
     picker.el,
-    h('div', 'join-foot', '', start, waiting, hint));
+    h('div', 'join-foot', '', start, waiting, exit, hint));
 
   const url = (): string => `${location.origin}${import.meta.env.BASE_URL}?sala=${p.code}`;
 
@@ -89,6 +90,7 @@ export function createLobby({ onStart, onOptions, onLeave }: LobbyDeps): LobbySc
     start.hidden = !p.host;
     start.disabled = players.length < 2;
     waiting.hidden = p.host;
+    exit.textContent = p.host ? 'FECHAR SALA' : 'SAIR DA SALA';
     hint.textContent = p.host
       ? 'Espaço, Enter ou Start começa (2 ou mais) · Esc / B fecha a sala'
       : 'Esc / B sai da sala';

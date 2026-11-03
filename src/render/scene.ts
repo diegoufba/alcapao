@@ -124,6 +124,8 @@ export function createScene(canvas: HTMLCanvasElement): {
   camera: THREE.PerspectiveCamera;
   resize(): void;
   update(dt: number, suddenDeath?: boolean): void;
+  /** Limita o pixel ratio a `n` (1,5 no modo toque, 2 fora dele) e reaplica o tamanho. */
+  setMaxPixelRatio(n: number): void;
 } {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -198,6 +200,11 @@ export function createScene(canvas: HTMLCanvasElement): {
   }
   resize();
 
+  function setMaxPixelRatio(n: number): void {
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, n));
+    resize();
+  }
+
   function update(dt: number, suddenDeath = false): void {
     const step = Math.min(dt, 0.1);
     uTime.value += step;
@@ -211,5 +218,5 @@ export function createScene(canvas: HTMLCanvasElement): {
     fog.near = 34 - 16 * uSuddenDeath.value;
   }
 
-  return { renderer, scene, camera, resize, update };
+  return { renderer, scene, camera, resize, update, setMaxPixelRatio };
 }

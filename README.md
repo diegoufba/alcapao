@@ -32,6 +32,18 @@ Quem cria a sala roda a partida, então se ele sair, todos voltam ao menu. Se um
 
 Algumas redes não conseguem conectar. Com NAT simétrico ou CGNAT (comum em internet móvel e em alguns provedores) a ligação direta falha, e não há servidor TURN para contornar. Se der erro de rede, tente outra rede ou peça para outra pessoa criar a sala.
 
+## Jogar no celular
+
+O jogo funciona no navegador do celular, **só na horizontal** (em pé, aparece o aviso "Gire o celular"). O primeiro toque tira o jogo da tela inicial e tenta ativar a tela cheia.
+
+- **Offline:** só 1 jogador. Na tela de entrada, toque em **COMEÇAR**.
+- **Online:** cada celular é um jogador. Abra o link da sala, ou digite o código na tela Online.
+- **Na partida:** o analógico aparece onde o polegar encosta, na metade esquerda da tela. O botão **EMPURRAR** fica no canto inferior direito, e o botão de pausa no canto superior direito.
+
+Se encostar numa tecla ou num botão de gamepad, o jogo volta aos controles do PC.
+
+Para testar num celular de verdade, com o PC e o celular na mesma rede Wi-Fi, rode `npm run dev -- --host` e abra no celular o endereço "Network" que o Vite mostrar.
+
 ## Controles
 
 | Dispositivo | Mover | Empurrar |

@@ -3,6 +3,7 @@ import { anyDeviceInput } from '../../src/input/any-input';
 import { GamepadInput, type PadLike } from '../../src/input/gamepad';
 import { KeyboardInput } from '../../src/input/keyboard';
 import type { HudSlots } from '../../src/input/match-input';
+import { TouchInput } from '../../src/input/touch';
 
 const slots: HudSlots = { label: () => 'Você', isConnected: () => true };
 
@@ -43,6 +44,21 @@ describe('anyDeviceInput', () => {
     expect(input.read().get('P3')).toEqual({ move: { x: 0, z: 1 }, push: true });
     // os dois empurrões foram consumidos na mesma leitura
     expect(input.read().get('P3')?.push).toBe(false);
+  });
+
+  test('toque move o jogador local', () => {
+    const touch = new TouchInput();
+    const input = anyDeviceInput('P1', new KeyboardInput(), new GamepadInput(), slots, touch);
+    touch.setStick({ x: 0, z: -1 });
+    expect(input.read().get('P1')?.move).toEqual({ x: 0, z: -1 });
+  });
+
+  test('empurrão do toque entra no OU', () => {
+    const touch = new TouchInput();
+    const input = anyDeviceInput('P1', new KeyboardInput(), new GamepadInput(), slots, touch);
+    touch.pressPush();
+    expect(input.read().get('P1')?.push).toBe(true);
+    expect(input.read().get('P1')?.push).toBe(false);
   });
 
   test('repassa label e isConnected do HudSlots', () => {

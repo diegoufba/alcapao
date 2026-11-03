@@ -23,6 +23,10 @@ export function createOnline({ nav, onCreate, onJoin, onBack }: OnlineDeps): Onl
   input.placeholder = 'ABCDE';
   input.autocomplete = 'off';
   input.spellcheck = false;
+  // teclado do celular: já abre em maiúsculas e mostra "ir" no lugar do Enter
+  input.setAttribute('autocapitalize', 'characters');
+  input.inputMode = 'text';
+  input.enterKeyHint = 'go';
   input.setAttribute('aria-label', 'Código da sala');
   const create = button('btn btn-accent', 'CRIAR SALA', () => {
     if (busy) return;
@@ -46,7 +50,8 @@ export function createOnline({ nav, onCreate, onJoin, onBack }: OnlineDeps): Onl
         input,
         enter)),
     status,
-    h('p', 'hint', 'Esc / B volta ao menu'));
+    button('btn touch-only', 'VOLTAR', () => onBack()), // no toque não há Esc / B
+    h('p', 'hint no-touch', 'Esc / B volta ao menu'));
 
   function render(): void {
     create.disabled = busy;

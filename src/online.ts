@@ -1,6 +1,7 @@
 import type { Mode, PlayerId, PlayerInput, Question } from './core/types';
 import type { GamepadInput } from './input/gamepad';
 import type { KeyboardInput } from './input/keyboard';
+import type { TouchInput } from './input/touch';
 import type { HudSlots, MatchInput } from './input/match-input';
 import { anyDeviceInput } from './input/any-input';
 import { createLocalSource } from './sim/local';
@@ -16,6 +17,8 @@ interface OnlineDeps {
   bank: Question[];
   keyboard: KeyboardInput;
   gamepad: GamepadInput;
+  /** Controles na tela do modo toque: o jogador local também lê daqui. */
+  touch: TouchInput;
   router: Router;
   /** O overlay online está aberto: o boneco local recebe input parado. */
   inputBlocked(): boolean;
@@ -33,6 +36,8 @@ export interface OnlineFlow {
   /** Fecha a sala (host) ou sai dela (cliente), e descarta uma conexão ainda em andamento. */
   leave(): void;
   role(): 'host' | 'client' | null;
+  /** O jogador local na sala (o host é o P1), ou null sem sessão. */
+  you(): PlayerId | null;
   /** Host: começa a partida (precisa de 2 jogadores ou mais). */
   start(): void;
   /** Host: troca modo e rodadas. */
@@ -49,7 +54,7 @@ const STILL: PlayerInput = { move: { x: 0, z: 0 }, push: false };
 
 /** Fiação das telas online com as sessões de host e cliente. */
 export function createOnlineFlow(deps: OnlineDeps): OnlineFlow {
-  const { bank, keyboard, gamepad, router } = deps;
+  const { bank, keyboard, gamepad, touch, router } = deps;
   let online: { kind: 'host'; session: HostSession } | { kind: 'client'; session: ClientSession; code: string } | null = null;
   let attempt = 0; // cada host()/join()/leave() invalida a conexão anterior ainda em andamento
 
@@ -63,7 +68,7 @@ export function createOnlineFlow(deps: OnlineDeps): OnlineFlow {
 
   /** Entrada do jogador local: qualquer dispositivo; parada enquanto o overlay estiver aberto. */
   function matchInput(you: PlayerId, slots: HudSlots): MatchInput {
-    const inner = anyDeviceInput(you, keyboard, gamepad, slots);
+    const inner = anyDeviceInput(you, keyboard, gamepad, slots, touch);
     return {
       label: inner.label,
       isConnected: inner.isConnected,
@@ -144,6 +149,7 @@ export function createOnlineFlow(deps: OnlineDeps): OnlineFlow {
     join,
     leave,
     role: () => online?.kind ?? null,
+    you: () => (online ? (online.kind === 'host' ? 'P1' : online.session.you) : null),
     start() {
       if (online?.kind !== 'host') return;
       const { session } = online;

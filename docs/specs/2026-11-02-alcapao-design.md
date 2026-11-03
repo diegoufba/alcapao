@@ -327,4 +327,4 @@ type GameEvent =
 
 ## 9. Fora do MVP
 
-Trilha original ou composta sob encomenda, música adaptativa em camadas, áudio espacial (3D posicional), personalização de bonecos e skins, power-ups, editor e importação de perguntas, multijogador com celular (o multijogador online tem [especificação própria](2026-11-03-alcapao-online-design.md)), acesso pago, mobile/touch, localização para outros idiomas e modelos 3D feitos em ferramenta externa.
+Trilha original ou composta sob encomenda, música adaptativa em camadas, áudio espacial (3D posicional), personalização de bonecos e skins, power-ups, editor e importação de perguntas, multijogador com celular na mesma tela (o multijogador online tem [especificação própria](2026-11-03-alcapao-online-design.md), e o jogo no celular por toque também: [especificação do celular](2026-11-03-alcapao-celular-design.md)), acesso pago, localização para outros idiomas e modelos 3D feitos em ferramenta externa.

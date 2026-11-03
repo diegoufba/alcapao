@@ -28,13 +28,13 @@ const HEADSET = ['M3 11a8 8 0 0 1 16 0', 'M3.5 11h2a1 1 0 0 1 1 1v4a1 1 0 0 1-1 
 export function createPressStart(): ScreenCtl {
   const chars = h('div', 'ps-chars', '', ...(['P1', 'P2', 'P3', 'P4'] as const).map((id) => portrait(id)));
   const legend = h('div', 'ps-legend', '',
-    h('span', '', '', icon(28, KEYBOARD), 'Teclado'),
-    h('span', '', '', icon(30, GAMEPAD), 'Gamepad'),
+    h('span', 'ps-legend-pad', '', icon(28, KEYBOARD), 'Teclado'),
+    h('span', 'ps-legend-pad', '', icon(30, GAMEPAD), 'Gamepad'),
     h('span', '', '', icon(22, HEADSET), 'O som liga quando você apertar'));
   const { el, stage: st } = stage('press-start',
     chars,
     h('h1', 'ps-logo', 'ALÇAPÃO'),
-    h('div', 'ps-cta', 'APERTE QUALQUER TECLA OU BOTÃO'),
+    h('div', 'ps-cta', '', h('span', 'ps-cta-keys', 'APERTE QUALQUER TECLA OU BOTÃO'), h('span', 'ps-cta-touch', 'TOQUE PARA COMEÇAR')),
     legend);
   st.append(h('span', 'ps-version', 'v0.1 · protótipo'), h('p', 'audio-hint', AUDIO_HINT));
   return { el, show() { el.hidden = false; }, hide() { el.hidden = true; } };

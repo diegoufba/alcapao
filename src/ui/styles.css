@@ -14,6 +14,7 @@
 }
 
 html, body { margin: 0; height: 100%; background: var(--sky); color: var(--text); font-family: var(--body); font-weight: 700; overflow: hidden; }
+body { touch-action: manipulation; } /* sem duplo toque para zoom */
 #app { position: fixed; inset: 0; }
 #app canvas { display: block; width: 100%; height: 100%; }
 
@@ -107,6 +108,12 @@ body[data-screen="press-start"] #app canvas { filter: blur(5px) saturate(1.1) br
 }
 @keyframes ps-pulse { 50% { transform: scale(1.04); } }
 .ps-legend { display: flex; align-items: center; gap: 14px; font-size: 15px; font-weight: 800; color: var(--ink); }
+.ps-cta-touch { display: none; }
+/* celular: sem tecla nem botão para apertar */
+@media (pointer: coarse) {
+  .ps-cta-keys, .ps-legend .ps-legend-pad { display: none; }
+  .ps-cta-touch { display: inline; }
+}
 .ps-legend span { display: flex; align-items: center; gap: 8px; background: var(--card); border: 3px solid var(--ink); border-radius: 12px; padding: 6px 12px; }
 .ps-version { position: absolute; right: 24px; bottom: 18px; font-size: 13px; font-weight: 800; color: var(--ink); }
 
@@ -277,3 +284,76 @@ body[data-screen="press-start"] #app canvas { filter: blur(5px) saturate(1.1) br
 /* aviso de som bloqueado: só enquanto o AudioContext não estiver rodando (body[data-audio="locked"]) */
 .audio-hint { display: none; position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); margin: 0; font-size: 13px; font-weight: 800; color: var(--ink); white-space: nowrap; }
 body[data-audio="locked"] .audio-hint { display: block; }
+
+/* ---------- modo toque (body.is-touch): controles na partida e HUD no topo ---------- */
+/* botões de voltar/sair que substituem o Esc / B no toque; atalhos de teclado e gamepad somem */
+body:not(.is-touch) .touch-only { display: none; }
+body.is-touch .no-touch { display: none; }
+/* tamanhos em px de tela de verdade (alvos de toque), sem --ui-scale */
+.touch-controls { display: none; position: fixed; inset: 0; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; pointer-events: none; }
+/* body.touch-local: na partida, o jogador deste aparelho joga por toque (offline: P1 `touch`; online: sempre) */
+body.is-touch.touch-local[data-screen="match"] .touch-controls { display: block; }
+.tc-stick-zone { position: fixed; left: 0; top: 0; bottom: 0; width: 50%; pointer-events: auto; touch-action: none; }
+.tc-stick-base {
+  position: fixed; left: 0; top: 0; width: 120px; height: 120px; margin: -60px 0 0 -60px; box-sizing: border-box; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28); border: 4px solid rgba(30, 26, 46, 0.55); display: none; pointer-events: none;
+}
+.tc-stick-base.is-on { display: block; }
+.tc-stick-pin {
+  position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; box-sizing: border-box; border-radius: 50%;
+  background: var(--yellow); border: 4px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+}
+.tc-push {
+  position: fixed; right: calc(24px + env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom));
+  width: 110px; height: 110px; padding: 0; border-radius: 50%; border: 4px solid var(--ink); box-shadow: 5px 5px 0 var(--ink);
+  /* anel de recarga: a parte pronta (--ready) em amarelo, o resto escuro */
+  background: radial-gradient(circle, var(--accent) 0 44px, transparent 45px),
+    conic-gradient(var(--yellow) 0 var(--ready, 360deg), rgba(30, 26, 46, 0.55) var(--ready, 360deg) 360deg);
+  color: #ffffff; font-family: var(--title); font-size: 15px; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; letter-spacing: 0.5px;
+  pointer-events: auto; touch-action: none; cursor: pointer;
+}
+.tc-push.is-cooling { color: rgba(255, 255, 255, 0.75); }
+.tc-push:active { transform: translate(3px, 3px); box-shadow: 2px 2px 0 var(--ink); }
+.tc-pause {
+  position: fixed; right: calc(14px + env(safe-area-inset-right)); top: calc(10px + env(safe-area-inset-top));
+  width: 48px; height: 48px; padding: 0; border-radius: 14px; border: 4px solid var(--ink); box-shadow: 3px 3px 0 var(--ink);
+  background: var(--card); color: var(--ink); font-family: var(--title); font-size: 22px; line-height: 1;
+  pointer-events: auto; touch-action: none; cursor: pointer;
+}
+/* HUD no topo, menor: o rodapé fica para os polegares. Os cards vão para os cantos (ímpares à esquerda,
+   pares à direita, antes da pausa) para não cobrir o telão no centro. */
+body.is-touch .hud {
+  top: calc(8px + env(safe-area-inset-top)); bottom: auto;
+  left: calc(10px + env(safe-area-inset-left)); right: calc(72px + env(safe-area-inset-right));
+  grid-template-columns: 140px minmax(0, 1fr) 140px; gap: 6px;
+}
+body.is-touch .hud-card:nth-child(odd) { grid-column: 1; }
+body.is-touch .hud-card:nth-child(even) { grid-column: 3; }
+body.is-touch .hud-card { gap: 3px; padding: 4px 8px; border-width: 3px; border-radius: 10px; box-shadow: 3px 3px 0 var(--ink); }
+body.is-touch .hud-dot { width: 12px; height: 12px; border-width: 2px; }
+body.is-touch .hud-id { font-size: 14px; }
+body.is-touch .hud-device { display: none; } /* "Toque" não cabe no card de 140 px */
+body.is-touch .hud-cool { font-size: 10px; }
+body.is-touch .hud-status { font-size: 11px; }
+body.is-touch .hud-pushlabel { display: none; } /* card estreito: a barra ocupa o lugar do rótulo */
+body.is-touch .hud-cool { width: 38px; }
+body.is-touch .hud-track { height: 6px; }
+body.is-touch .hud-fill { height: 6px; }
+
+/* ---------- aviso "Gire o celular": celular em retrato. Cobre tudo; o jogo segue rodando por trás ---------- */
+.rotate-hint { display: none; }
+@media (orientation: portrait) and (pointer: coarse) {
+  .rotate-hint {
+    position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; padding: 24px; box-sizing: border-box; background: var(--sky); text-align: center; touch-action: none;
+  }
+}
+.rotate-icon { animation: rotate-hint 2.4s ease-in-out infinite; margin-bottom: 12px; }
+.rotate-title { margin: 0; font-family: var(--title); font-size: 34px; color: var(--accent); -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; }
+.rotate-text { margin: 0; font-size: 18px; font-weight: 800; color: var(--ink); }
+@keyframes rotate-hint {
+  0%, 20% { transform: rotate(0deg); }
+  50%, 80% { transform: rotate(-90deg); }
+  100% { transform: rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) { .rotate-icon { animation: none; transform: rotate(-90deg); } }
