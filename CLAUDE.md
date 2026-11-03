@@ -29,10 +29,11 @@ Dependências usam versões exatas (`npm install --save-exact`).
 
 - `?showcase=question|reveal|spin|suddenDeath|characters` monta só a cena com o telão num estado fixo (`src/showcase.ts`). Aceita `&mode=points` e `&sd` (morte súbita). É o jeito mais rápido de conferir mudanças visuais.
 - `?quick=survival|points&players=1-4&rounds=8|12|16` pula os menus e entra direto numa partida.
-- `?online=host` cria a sala e vai direto ao lobby; `?online=join&sala=XXXXX` entra direto numa sala. Para testar no mesmo PC, abra duas abas (o PeerJS funciona entre abas): uma com `?online=host`, a outra com `?online=join&sala=` e o código que o lobby mostra. No online, F1 também mostra o RTT e a idade do último snapshot.
+- `?online=host` cria a sala e vai direto ao lobby; `?online=join&sala=XXXXX` entra direto numa sala. Para testar no mesmo PC, abra duas abas (o PeerJS funciona entre abas): uma com `?online=host`, a outra com `?online=join&sala=` e o código que o lobby mostra. No cliente online, F1 também mostra o RTT e a idade do último snapshot (só aparecem no cliente).
 - `?bank=empty` simula banco de perguntas vazio (tela de erro).
-- `?sala=X` (também em produção) abre a tela Online com o código preenchido; o parâmetro é removido da URL depois de usado.
 - No jogo: F1 liga o debug (FPS, resposta certa, zonas, colisões) e N pula a fase.
+
+O `?sala=X` vale também em produção: abre a tela Online com o código preenchido e some da URL depois de usado.
 
 ## Arquitetura
 
